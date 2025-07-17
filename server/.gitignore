@@ -1,0 +1,23 @@
+# Node dependencies
+node_modules/
+
+# Environment variables
+.env
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# OS-specific
+.DS_Store
+
+# Optional: coverage reports if you add testing later
+coverage/
+
+# Optional: logs folder if you save logs
+logs/
+*.log
+
+# Optional: TypeScript (if you ever use it in backend)
+*.tsbuildinfo
