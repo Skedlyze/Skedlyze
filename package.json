@@ -34,5 +34,8 @@
   "workspaces": [
     "server",
     "client"
-  ]
-} 
+  ],
+  "dependencies": {
+    "googleapis": "^153.0.0"
+  }
+}
