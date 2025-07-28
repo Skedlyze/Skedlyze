@@ -25,28 +25,15 @@ import {
   Alert,
   CircularProgress,
   IconButton,
-  Snackbar,
-  Tooltip,
 } from '@mui/material'
-import { 
-  Add, 
-  Work, 
-  FitnessCenter, 
-  Person, 
-  School, 
-  Delete, 
-  Event,
-  PriorityHigh,
-  CheckCircle,
-  Schedule
-} from '@mui/icons-material'
+import { Add, Work, FitnessCenter, Person, School, Delete } from '@mui/icons-material'
 import { taskService } from '../services/taskService'
 
 const categories = [
-  { value: 'work', label: 'Work', icon: <Work />, color: '#1976d2' },
-  { value: 'health', label: 'Health & Fitness', icon: <FitnessCenter />, color: '#2e7d32' },
-  { value: 'personal', label: 'Personal', icon: <Person />, color: '#ed6c02' },
-  { value: 'learning', label: 'Learning', icon: <School />, color: '#9c27b0' },
+  { value: 'work', label: 'Work', icon: <Work /> },
+  { value: 'health', label: 'Health', icon: <FitnessCenter /> },
+  { value: 'personal', label: 'Personal', icon: <Person /> },
+  { value: 'learning', label: 'Learning', icon: <School /> },
 ]
 
 function TasksPage() {
@@ -54,7 +41,6 @@ function TasksPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [openDialog, setOpenDialog] = useState(false)
-  const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' })
   const [newTask, setNewTask] = useState({
     title: '',
     description: '',
@@ -76,14 +62,10 @@ function TasksPage() {
       setTasks(tasksData)
     } catch (err) {
       console.error('Error loading tasks:', err)
-      setError('Oops! Something went wrong while loading your tasks. Give it another try?')
+      setError('Failed to load tasks. Please try again.')
     } finally {
       setLoading(false)
     }
-  }
-
-  const showSnackbar = (message, severity = 'success') => {
-    setSnackbar({ open: true, message, severity })
   }
 
   const handleToggleTask = async (taskId) => {
@@ -98,19 +80,16 @@ function TasksPage() {
           status: 'pending',
           completed_at: null 
         })
-        showSnackbar('Task marked as incomplete - no worries, you can always try again!', 'info')
       } else {
         // Complete the task
-        const result = await taskService.complete(taskId)
-        const xpGained = result.experienceGained || 10
-        showSnackbar(`Great job! You earned ${xpGained} XP for completing this task! 🎉`, 'success')
+        await taskService.complete(taskId)
       }
       
       // Reload tasks to get updated data
       await loadTasks()
     } catch (err) {
       console.error('Error toggling task:', err)
-      showSnackbar('Hmm, something went wrong there. Try again?', 'error')
+      setError('Failed to update task. Please try again.')
     }
   }
 
@@ -118,22 +97,21 @@ function TasksPage() {
     try {
       await taskService.delete(taskId)
       await loadTasks()
-      showSnackbar('Task removed from your list', 'info')
     } catch (err) {
       console.error('Error deleting task:', err)
-      showSnackbar('Couldn\'t delete that task right now. Try again?', 'error')
+      setError('Failed to delete task. Please try again.')
     }
   }
 
   const handleAddTask = async () => {
     if (!newTask.title.trim()) {
-      showSnackbar('Hey, you need to give your task a name!', 'warning')
+      setError('Task title is required')
       return
     }
 
     try {
       setError(null)
-      const createdTask = await taskService.create(newTask)
+      await taskService.create(newTask)
       setNewTask({ 
         title: '', 
         description: '',
@@ -143,16 +121,9 @@ function TasksPage() {
       })
       setOpenDialog(false)
       await loadTasks()
-      
-      // Check if task was synced to calendar
-      if (createdTask.synced_to_calendar) {
-        showSnackbar('Task created and added to your Skedlyze Calendar! 📅', 'success')
-      } else {
-        showSnackbar('Task added to your list!', 'success')
-      }
     } catch (err) {
       console.error('Error creating task:', err)
-      showSnackbar('Oops! Couldn\'t create that task. Try again?', 'error')
+      setError('Failed to create task. Please try again.')
     }
   }
 
@@ -165,43 +136,17 @@ function TasksPage() {
     }
   }
 
-  const getPriorityIcon = (priority) => {
-    switch (priority) {
-      case 'high': return <PriorityHigh fontSize="small" />
-      case 'medium': return <Schedule fontSize="small" />
-      case 'low': return <CheckCircle fontSize="small" />
-      default: return <Schedule fontSize="small" />
-    }
-  }
-
   const getCategoryIcon = (category) => {
     return categories.find(cat => cat.value === category)?.icon || <Work />
   }
 
   const formatDate = (dateString) => {
-    if (!dateString) return 'No deadline set'
-    const date = new Date(dateString)
-    const today = new Date()
-    const tomorrow = new Date(today)
-    tomorrow.setDate(tomorrow.getDate() + 1)
-    
-    if (date.toDateString() === today.toDateString()) {
-      return 'Due today'
-    } else if (date.toDateString() === tomorrow.toDateString()) {
-      return 'Due tomorrow'
-    } else {
-      return `Due ${date.toLocaleDateString()}`
-    }
-  }
-
-  const isOverdue = (dateString) => {
-    if (!dateString) return false
-    return new Date(dateString) < new Date() && new Date(dateString).toDateString() !== new Date().toDateString()
+    if (!dateString) return 'No due date'
+    return new Date(dateString).toLocaleDateString()
   }
 
   const completedTasks = tasks.filter(task => task.is_completed).length
   const totalTasks = tasks.length
-  const overdueTasks = tasks.filter(task => isOverdue(task.due_date) && !task.is_completed).length
 
   if (loading) {
     return (
@@ -220,54 +165,24 @@ function TasksPage() {
       )}
 
       <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
-        <Box>
-          <Typography variant="h4" sx={{ fontWeight: 'bold', mb: 1 }}>
-            My Tasks
-          </Typography>
-          <Typography variant="body2" color="textSecondary">
-            {completedTasks} of {totalTasks} completed
-            {overdueTasks > 0 && (
-              <span style={{ color: '#d32f2f', marginLeft: 8 }}>
-                • {overdueTasks} overdue
-              </span>
-            )}
-          </Typography>
-        </Box>
+        <Typography variant="h4" sx={{ fontWeight: 'bold' }}>
+          My Tasks
+        </Typography>
+        <Typography variant="h6" color="textSecondary">
+          {completedTasks} of {totalTasks} completed
+        </Typography>
       </Box>
 
       <Card>
         <CardContent>
           {tasks.length === 0 ? (
-            <Box textAlign="center" py={4}>
-              <Typography variant="h6" color="textSecondary" mb={2}>
-                No tasks yet
-              </Typography>
-              <Typography variant="body2" color="textSecondary" mb={3}>
-                Ready to get organized? Create your first task to start building better habits!
-              </Typography>
-              <Button
-                variant="contained"
-                startIcon={<Add />}
-                onClick={() => setOpenDialog(true)}
-              >
-                Create Your First Task
-              </Button>
-            </Box>
+            <Typography variant="body1" color="textSecondary" textAlign="center" py={4}>
+              No tasks yet. Create your first task to get started!
+            </Typography>
           ) : (
             <List>
               {tasks.map((task) => (
-                <ListItem 
-                  key={task.id} 
-                  divider
-                  sx={{
-                    backgroundColor: task.is_completed ? '#f8f9fa' : 'transparent',
-                    opacity: task.is_completed ? 0.7 : 1,
-                    transition: 'all 0.2s ease',
-                    '&:hover': {
-                      backgroundColor: task.is_completed ? '#f1f3f4' : '#f8f9fa'
-                    }
-                  }}
-                >
+                <ListItem key={task.id} divider>
                   <ListItemIcon>
                     <Checkbox
                       edge="start"
@@ -283,56 +198,38 @@ function TasksPage() {
                         sx={{
                           textDecoration: task.is_completed ? 'line-through' : 'none',
                           color: task.is_completed ? 'text.secondary' : 'text.primary',
-                          fontWeight: task.is_completed ? 'normal' : 500,
                         }}
                       >
                         {task.title}
                       </Typography>
                     }
                     secondary={
-                      <Box mt={1}>
+                      <Box>
                         {task.description && (
-                          <Typography variant="body2" color="textSecondary" mb={1}>
+                          <Typography variant="body2" color="textSecondary">
                             {task.description}
                           </Typography>
                         )}
-                        <Box display="flex" alignItems="center" gap={1} flexWrap="wrap">
-                          <Typography 
-                            variant="body2" 
-                            color={isOverdue(task.due_date) ? '#d32f2f' : 'textSecondary'}
-                            sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}
-                          >
-                            <Event fontSize="small" />
-                            {formatDate(task.due_date)}
-                          </Typography>
-                        </Box>
+                        <Typography variant="body2" color="textSecondary">
+                          Due: {formatDate(task.due_date)}
+                        </Typography>
                       </Box>
                     }
                   />
                   <Box display="flex" gap={1} alignItems="center">
-                    <Tooltip title={`${task.priority} priority`}>
-                      <Chip
-                        icon={getPriorityIcon(task.priority)}
-                        label={task.priority}
-                        color={getPriorityColor(task.priority)}
-                        size="small"
-                        variant="outlined"
-                      />
-                    </Tooltip>
-                    <Tooltip title={categories.find(cat => cat.value === task.category)?.label}>
-                      <Box sx={{ color: categories.find(cat => cat.value === task.category)?.color }}>
-                        {getCategoryIcon(task.category)}
-                      </Box>
-                    </Tooltip>
-                    <Tooltip title="Delete task">
-                      <IconButton
-                        size="small"
-                        onClick={() => handleDeleteTask(task.id)}
-                        color="error"
-                      >
-                        <Delete />
-                      </IconButton>
-                    </Tooltip>
+                    <Chip
+                      label={task.priority}
+                      color={getPriorityColor(task.priority)}
+                      size="small"
+                    />
+                    {getCategoryIcon(task.category)}
+                    <IconButton
+                      size="small"
+                      onClick={() => handleDeleteTask(task.id)}
+                      color="error"
+                    >
+                      <Delete />
+                    </IconButton>
                   </Box>
                 </ListItem>
               ))}
@@ -343,7 +240,7 @@ function TasksPage() {
 
       <Fab
         color="primary"
-        aria-label="add task"
+        aria-label="add"
         sx={{ position: 'fixed', bottom: 16, right: 16 }}
         onClick={() => setOpenDialog(true)}
       >
@@ -357,35 +254,33 @@ function TasksPage() {
             <Grid item xs={12}>
               <TextField
                 fullWidth
-                label="What do you need to do?"
+                label="Task Title"
                 value={newTask.title}
                 onChange={(e) => setNewTask({ ...newTask, title: e.target.value })}
                 required
-                placeholder="e.g., Finish project report, Call mom, Go for a run"
               />
             </Grid>
             <Grid item xs={12}>
               <TextField
                 fullWidth
-                label="More details (optional)"
+                label="Description (optional)"
                 multiline
                 rows={3}
                 value={newTask.description}
                 onChange={(e) => setNewTask({ ...newTask, description: e.target.value })}
-                placeholder="Add any notes or context that might help..."
               />
             </Grid>
             <Grid item xs={6}>
               <FormControl fullWidth>
-                <InputLabel>How important is this?</InputLabel>
+                <InputLabel>Priority</InputLabel>
                 <Select
                   value={newTask.priority}
-                  label="How important is this?"
+                  label="Priority"
                   onChange={(e) => setNewTask({ ...newTask, priority: e.target.value })}
                 >
-                  <MenuItem value="low">Low - No rush</MenuItem>
-                  <MenuItem value="medium">Medium - Important</MenuItem>
-                  <MenuItem value="high">High - Urgent!</MenuItem>
+                  <MenuItem value="low">Low</MenuItem>
+                  <MenuItem value="medium">Medium</MenuItem>
+                  <MenuItem value="high">High</MenuItem>
                 </Select>
               </FormControl>
             </Grid>
@@ -408,12 +303,11 @@ function TasksPage() {
             <Grid item xs={12}>
               <TextField
                 fullWidth
-                label="When is this due?"
+                label="Due Date"
                 type="date"
                 value={newTask.due_date}
                 onChange={(e) => setNewTask({ ...newTask, due_date: e.target.value })}
                 InputLabelProps={{ shrink: true }}
-                helperText="Tasks with due dates will be added to your Skedlyze Calendar"
               />
             </Grid>
           </Grid>
@@ -425,19 +319,6 @@ function TasksPage() {
           </Button>
         </DialogActions>
       </Dialog>
-
-      <Snackbar
-        open={snackbar.open}
-        autoHideDuration={4000}
-        onClose={() => setSnackbar({ ...snackbar, open: false })}
-      >
-        <Alert 
-          onClose={() => setSnackbar({ ...snackbar, open: false })} 
-          severity={snackbar.severity}
-        >
-          {snackbar.message}
-        </Alert>
-      </Snackbar>
     </Box>
   )
 }
