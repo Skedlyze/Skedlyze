@@ -231,6 +231,37 @@ const deleteCalendarEvent = async (req, res) => {
   }
 };
 
+// Create or get Skedlyze calendar
+const getOrCreateSkedlyzeCalendar = async (accessToken) => {
+  const calendar = getCalendarAPI(accessToken);
+  
+  try {
+    // First, try to find existing Skedlyze calendar
+    const calendarList = await calendar.calendarList.list();
+    const skedlyzeCalendar = calendarList.data.items.find(
+      cal => cal.summary === 'Skedlyze Calendar'
+    );
+    
+    if (skedlyzeCalendar) {
+      return skedlyzeCalendar.id;
+    }
+    
+    // Create new Skedlyze calendar if it doesn't exist
+    const newCalendar = await calendar.calendars.insert({
+      resource: {
+        summary: 'Skedlyze Calendar',
+        description: 'Tasks and events from Skedlyze app',
+        timeZone: 'UTC'
+      }
+    });
+    
+    return newCalendar.data.id;
+  } catch (error) {
+    console.error('Error creating Skedlyze calendar:', error);
+    throw error;
+  }
+};
+
 // Sync all user tasks to calendar
 const syncAllTasksToCalendar = async (req, res) => {
   try {
@@ -252,6 +283,16 @@ const syncAllTasksToCalendar = async (req, res) => {
       .select('*');
 
     const calendar = getCalendarAPI(user.access_token);
+    
+    // Get or create Skedlyze calendar
+    let skedlyzeCalendarId;
+    try {
+      skedlyzeCalendarId = await getOrCreateSkedlyzeCalendar(user.access_token);
+    } catch (error) {
+      console.error('Error getting Skedlyze calendar:', error);
+      return res.status(500).json({ error: 'Failed to create Skedlyze calendar' });
+    }
+    
     const syncedTasks = [];
 
     for (const task of tasks) {
@@ -270,7 +311,7 @@ const syncAllTasksToCalendar = async (req, res) => {
         };
 
         const response = await calendar.events.insert({
-          calendarId: 'primary', // Default to primary calendar for now
+          calendarId: skedlyzeCalendarId, // Use Skedlyze calendar instead of primary
           resource: event
         });
 
@@ -292,7 +333,7 @@ const syncAllTasksToCalendar = async (req, res) => {
     }
 
     res.json({
-      message: `Synced ${syncedTasks.length} tasks to calendar`,
+      message: `Synced ${syncedTasks.length} tasks to Skedlyze Calendar`,
       syncedTasks
     });
   } catch (error) {

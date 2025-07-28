@@ -14,6 +14,7 @@ import {
   Avatar,
   Paper,
   CircularProgress,
+  Alert,
 } from '@mui/material'
 import {
   TrendingUp,
@@ -23,6 +24,8 @@ import {
   CheckCircle,
   Schedule,
   Star,
+  Celebration,
+  RocketLaunch,
 } from '@mui/icons-material'
 import { useAuth } from '../context/AuthContext'
 import axios from 'axios'
@@ -62,7 +65,7 @@ function DashboardPage() {
         setAchievements(achievementsData.filter(a => a.is_unlocked).slice(0, 3))
       } catch (err) {
         console.error('Error fetching dashboard data:', err)
-        setError('Failed to load dashboard data')
+        setError('Oops! Something went wrong while loading your dashboard. Give it another try?')
       } finally {
         setLoading(false)
       }
@@ -82,7 +85,7 @@ function DashboardPage() {
   if (error) {
     return (
       <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
-        <Typography color="error">{error}</Typography>
+        <Alert severity="error">{error}</Alert>
       </Box>
     )
   }
@@ -113,11 +116,70 @@ function DashboardPage() {
     }
   }
 
+  const getWelcomeMessage = () => {
+    const hour = new Date().getHours()
+    if (hour < 12) return 'Good morning'
+    if (hour < 17) return 'Good afternoon'
+    return 'Good evening'
+  }
+
+  const getMotivationalMessage = () => {
+    if (stats.streak > 7) {
+      return `🔥 Amazing! You're on a ${stats.streak}-day streak! Keep up the incredible work!`
+    } else if (stats.streak > 3) {
+      return `🔥 Nice! You've been consistent for ${stats.streak} days. You're building great habits!`
+    } else if (stats.completionRate > 80) {
+      return `🎯 You're crushing it with a ${taskCompletionRate.toFixed(0)}% completion rate!`
+    } else if (stats.totalTasks > 0) {
+      return `💪 You've created ${stats.totalTasks} tasks so far. Every step counts!`
+    } else {
+      return `🚀 Ready to get started? Create your first task and begin your productivity journey!`
+    }
+  }
+
   return (
     <Box>
-      <Typography variant="h4" gutterBottom sx={{ fontWeight: 'bold', mb: 3 }}>
-        Welcome back, {user?.name}! 👋
+      <Typography variant="h4" gutterBottom sx={{ fontWeight: 'bold', mb: 1 }}>
+        {getWelcomeMessage()}, {user?.name}! 👋
       </Typography>
+      
+      <Typography variant="body1" color="textSecondary" sx={{ mb: 3 }}>
+        {getMotivationalMessage()}
+      </Typography>
+
+      {/* Level Progress */}
+      <Card sx={{ mb: 3, background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', color: 'white' }}>
+        <CardContent>
+          <Box display="flex" alignItems="center" justifyContent="space-between" mb={2}>
+            <Box>
+              <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
+                Level {stats.level}
+              </Typography>
+              <Typography variant="body2" sx={{ opacity: 0.9 }}>
+                {stats.xp} / {stats.nextLevelXp} XP
+              </Typography>
+            </Box>
+            <Avatar sx={{ bgcolor: 'rgba(255,255,255,0.2)', width: 56, height: 56 }}>
+              <RocketLaunch />
+            </Avatar>
+          </Box>
+          <LinearProgress 
+            variant="determinate" 
+            value={progressPercentage} 
+            sx={{ 
+              height: 8, 
+              borderRadius: 4,
+              backgroundColor: 'rgba(255,255,255,0.3)',
+              '& .MuiLinearProgress-bar': {
+                backgroundColor: 'white'
+              }
+            }} 
+          />
+          <Typography variant="caption" sx={{ mt: 1, display: 'block', opacity: 0.9 }}>
+            {stats.nextLevelXp - stats.xp} XP to next level
+          </Typography>
+        </CardContent>
+      </Card>
 
       {/* Stats Cards */}
       <Grid container spacing={3} sx={{ mb: 4 }}>
@@ -127,10 +189,13 @@ function DashboardPage() {
               <Box display="flex" alignItems="center" justifyContent="space-between">
                 <Box>
                   <Typography color="textSecondary" gutterBottom>
-                    Total Tasks
+                    Tasks Created
                   </Typography>
                   <Typography variant="h4" sx={{ fontWeight: 'bold' }}>
                     {stats.totalTasks}
+                  </Typography>
+                  <Typography variant="body2" color="textSecondary">
+                    {stats.totalTasks === 0 ? 'Start building your list!' : 'You\'re getting organized!'}
                   </Typography>
                 </Box>
                 <Avatar sx={{ bgcolor: 'primary.main' }}>
@@ -152,6 +217,9 @@ function DashboardPage() {
                   <Typography variant="h4" sx={{ fontWeight: 'bold' }}>
                     {taskCompletionRate.toFixed(0)}%
                   </Typography>
+                  <Typography variant="body2" color="textSecondary">
+                    {taskCompletionRate > 80 ? 'Outstanding!' : taskCompletionRate > 60 ? 'Great progress!' : 'Keep going!'}
+                  </Typography>
                 </Box>
                 <Avatar sx={{ bgcolor: 'success.main' }}>
                   <TrendingUp />
@@ -171,6 +239,9 @@ function DashboardPage() {
                   </Typography>
                   <Typography variant="h4" sx={{ fontWeight: 'bold' }}>
                     {stats.streak} days
+                  </Typography>
+                  <Typography variant="body2" color="textSecondary">
+                    {stats.streak === 0 ? 'Start your streak today!' : 'You\'re on fire! 🔥'}
                   </Typography>
                 </Box>
                 <Avatar sx={{ bgcolor: 'warning.main' }}>
@@ -192,6 +263,9 @@ function DashboardPage() {
                   <Typography variant="h4" sx={{ fontWeight: 'bold' }}>
                     {stats.achievements}
                   </Typography>
+                  <Typography variant="body2" color="textSecondary">
+                    {stats.achievements === 0 ? 'Unlock your first one!' : 'Keep earning those badges!'}
+                  </Typography>
                 </Box>
                 <Avatar sx={{ bgcolor: 'secondary.main' }}>
                   <EmojiEvents />
@@ -202,33 +276,57 @@ function DashboardPage() {
         </Grid>
       </Grid>
 
+      {/* Recent Tasks */}
       <Grid container spacing={3}>
-        {/* Level Progress */}
         <Grid item xs={12} md={6}>
           <Card>
             <CardContent>
-              <Typography variant="h6" gutterBottom>
-                Level Progress
+              <Typography variant="h6" gutterBottom sx={{ fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: 1 }}>
+                <Schedule />
+                Recent Tasks
               </Typography>
-              <Box display="flex" alignItems="center" mb={2}>
-                <Typography variant="h4" sx={{ fontWeight: 'bold', mr: 1 }}>
-                  Level {stats.level}
+              {recentTasks.length === 0 ? (
+                <Typography variant="body2" color="textSecondary" textAlign="center" py={2}>
+                  No recent tasks yet. Create your first task to see it here!
                 </Typography>
-                <Star sx={{ color: 'secondary.main', fontSize: 32 }} />
-              </Box>
-              <Box mb={2}>
-                <Typography variant="body2" color="textSecondary">
-                  {stats.xp} / {stats.nextLevelXp} XP
-                </Typography>
-                <LinearProgress
-                  variant="determinate"
-                  value={progressPercentage}
-                  sx={{ height: 8, borderRadius: 4 }}
-                />
-              </Box>
-              <Typography variant="body2" color="textSecondary">
-                {stats.nextLevelXp - stats.xp} XP until next level
-              </Typography>
+              ) : (
+                <List>
+                  {recentTasks.slice(0, 5).map((task) => (
+                    <ListItem key={task.id} dense>
+                      <ListItemIcon>
+                        <CheckCircle 
+                          color={task.is_completed ? 'success' : 'disabled'} 
+                          fontSize="small" 
+                        />
+                      </ListItemIcon>
+                      <ListItemText
+                        primary={
+                          <Typography
+                            variant="body2"
+                            sx={{
+                              textDecoration: task.is_completed ? 'line-through' : 'none',
+                              color: task.is_completed ? 'text.secondary' : 'text.primary',
+                            }}
+                          >
+                            {task.title}
+                          </Typography>
+                        }
+                        secondary={
+                          <Box display="flex" alignItems="center" gap={1} mt={0.5}>
+                            <span>{getCategoryIcon(task.category)}</span>
+                            <Chip
+                              label={task.priority}
+                              color={getPriorityColor(task.priority)}
+                              size="small"
+                              variant="outlined"
+                            />
+                          </Box>
+                        }
+                      />
+                    </ListItem>
+                  ))}
+                </List>
+              )}
             </CardContent>
           </Card>
         </Grid>
@@ -237,65 +335,29 @@ function DashboardPage() {
         <Grid item xs={12} md={6}>
           <Card>
             <CardContent>
-              <Typography variant="h6" gutterBottom>
+              <Typography variant="h6" gutterBottom sx={{ fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: 1 }}>
+                <Celebration />
                 Recent Achievements
               </Typography>
-              <List dense>
-                {achievements.map((achievement) => (
-                  <ListItem key={achievement.id}>
-                    <ListItemIcon>
-                      <Typography variant="h6">🏆</Typography>
-                    </ListItemIcon>
-                    <ListItemText
-                      primary={achievement.name}
-                      secondary={achievement.description}
-                    />
-                    <Chip
-                      label={achievement.is_unlocked ? 'Unlocked' : 'Locked'}
-                      color={achievement.is_unlocked ? 'success' : 'default'}
-                      size="small"
-                    />
-                  </ListItem>
-                ))}
-              </List>
-            </CardContent>
-          </Card>
-        </Grid>
-
-        {/* Recent Tasks */}
-        <Grid item xs={12}>
-          <Card>
-            <CardContent>
-              <Typography variant="h6" gutterBottom>
-                Recent Tasks
-              </Typography>
-              <List>
-                {recentTasks.map((task) => (
-                  <ListItem key={task.id} divider>
-                    <ListItemIcon>
-                      {task.is_completed ? (
-                        <CheckCircle color="success" />
-                      ) : (
-                        <Schedule color="action" />
-                      )}
-                    </ListItemIcon>
-                    <ListItemText
-                      primary={task.title}
-                      secondary={`${task.category} • ${task.priority} priority`}
-                    />
-                    <Box display="flex" gap={1}>
-                      <Chip
-                        label={task.priority}
-                        color={getPriorityColor(task.priority)}
-                        size="small"
+              {achievements.length === 0 ? (
+                <Typography variant="body2" color="textSecondary" textAlign="center" py={2}>
+                  Complete tasks to unlock achievements and earn badges!
+                </Typography>
+              ) : (
+                <List>
+                  {achievements.map((achievement) => (
+                    <ListItem key={achievement.id} dense>
+                      <ListItemIcon>
+                        <Star color="warning" fontSize="small" />
+                      </ListItemIcon>
+                      <ListItemText
+                        primary={achievement.name}
+                        secondary={achievement.description}
                       />
-                      <Typography variant="h6">
-                        {getCategoryIcon(task.category)}
-                      </Typography>
-                    </Box>
-                  </ListItem>
-                ))}
-              </List>
+                    </ListItem>
+                  ))}
+                </List>
+              )}
             </CardContent>
           </Card>
         </Grid>
