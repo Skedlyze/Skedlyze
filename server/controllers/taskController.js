@@ -1,6 +1,7 @@
 const db = require('../db/knex');
 const { google } = require('googleapis');
 const achievementService = require('../services/achievementService');
+const GamificationService = require('../services/gamificationService');
 
 // Get all tasks for the authenticated user
 const getUserTasks = async (req, res) => {
@@ -66,10 +67,14 @@ const createTask = async (req, res) => {
       recurrence_rule
     }).returning('*');
 
-    // Update user's total tasks created
-    await db('users')
-      .where({ id: req.user.id })
-      .increment('total_tasks_created', 1);
+    // Update user's gamification data (temporarily disabled for debugging)
+    try {
+      await GamificationService.updateTaskStats(req.user.id, false, true);
+      await GamificationService.updateCategoryStats(req.user.id, category || 'other', false);
+    } catch (gamificationError) {
+      console.error('Gamification service error (non-blocking):', gamificationError);
+      // Continue with task creation even if gamification fails
+    }
 
     res.status(201).json(task);
   } catch (error) {
@@ -148,6 +153,20 @@ const completeTask = async (req, res) => {
       ? Math.round((new Date(task.end_time) - new Date(task.start_time)) / (1000 * 60))
       : null;
 
+    // Calculate XP based on priority
+    let experienceReward;
+    switch (task.priority) {
+      case 'low':
+        experienceReward = 5;
+        break;
+      case 'high':
+        experienceReward = 20;
+        break;
+      default: // medium
+        experienceReward = 10;
+        break;
+    }
+
     // Update task
     const [updatedTask] = await db('tasks')
       .where({ id: req.params.id })
@@ -159,31 +178,32 @@ const completeTask = async (req, res) => {
       })
       .returning('*');
 
-    // Update user stats and award experience
-    const [user] = await db('users')
-      .where({ id: req.user.id })
-      .increment({
-        total_tasks_completed: 1,
-        experience_points: task.experience_reward
-      })
-      .returning('*');
+    // Update user's gamification data
+    try {
+      const experienceResult = await GamificationService.addExperience(req.user.id, experienceReward, 'task_completion');
+      await GamificationService.updateTaskStats(req.user.id, true, false);
+      await GamificationService.updateStreak(req.user.id);
+      await GamificationService.updateCategoryStats(req.user.id, task.category, true);
 
-    // Check for level up
-    const newLevel = Math.floor(user.experience_points / 100) + 1;
-    if (newLevel > user.level) {
-      await db('users')
-        .where({ id: req.user.id })
-        .update({ level: newLevel });
+      // Check for achievements
+      await achievementService.checkAllAchievements(req.user.id);
+
+      res.json({
+        task: updatedTask,
+        experienceGained: experienceResult.experienceGained,
+        levelUp: experienceResult.levelUp,
+        newLevel: experienceResult.levelUp ? experienceResult.level : null
+      });
+    } catch (gamificationError) {
+      console.error('Gamification service error (non-blocking):', gamificationError);
+      // Still return the completed task even if gamification fails
+      res.json({
+        task: updatedTask,
+        experienceGained: experienceReward,
+        levelUp: false,
+        newLevel: null
+      });
     }
-
-    // Check for achievements
-    await achievementService.checkTaskCompletionAchievements(req.user.id);
-
-    res.json({
-      task: updatedTask,
-      experienceGained: task.experience_reward,
-      newLevel: newLevel > user.level ? newLevel : null
-    });
   } catch (error) {
     console.error('Error completing task:', error);
     res.status(500).json({ error: 'Failed to complete task' });

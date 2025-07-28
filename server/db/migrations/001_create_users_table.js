@@ -10,7 +10,7 @@ exports.up = function(knex) {
     table.timestamp('token_expires_at').nullable();
     
     // Gamification fields
-    table.integer('level').defaultTo(1);
+    table.integer('level').defaultTo(0);
     table.integer('experience_points').defaultTo(0);
     table.integer('streak_days').defaultTo(0);
     table.date('last_activity_date').nullable();

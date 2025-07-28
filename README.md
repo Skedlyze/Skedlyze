@@ -1,10 +1,15 @@
+# Skedlyze - Gamified Lifestyle Web App
+
+A modern, gamified task management web application that turns productivity into a game with rewards, achievements, and Google Calendar integration.
+
+---
+
 ## 🚀 Getting Started
 
 ### Prerequisites
 
 - Node.js (v16 or higher)  
 - PostgreSQL (v12 or higher)  
-- Expo CLI  
 - Google Cloud Console account  
 
 ---
@@ -34,202 +39,179 @@ npm run seed
 
 # 7. Start development server
 npm run dev
-Frontend Setup
-bash
-Copy
-Edit
-# 1. Navigate to client directory
-cd ../client
+```
+
+### Frontend Setup
+
+```bash
+# 1. Navigate to web-client directory
+cd ../web-client
 
 # 2. Install frontend dependencies
 npm install
 
-# 3. Start Expo development server
-npm start
-Running on Device/Simulator
-Install the Expo Go app on your mobile device
+# 3. Start Vite development server
+npm run dev
+```
 
-Scan the QR code shown in the terminal or Expo web page
-
-Or press i to open iOS simulator, a to open Android emulator (if set up)
-
-pgsql
-Copy
-Edit
-
-That’s it — a neat copy-paste ready section for your README with no fragmentation! Want me to do this for any other sections?
-
-
-
-
-
-
-
-You said:
-still keep the other parts like usage overview
-
-
-ChatGPT said:
-Got it! Here's the full README including setup, usage, and overview — all properly formatted and ready for easy copy-paste in one go:
-
-markdown
-Copy
-Edit
-# Skedlyze - Gamified Lifestyle App
-
-A modern, gamified task management app that turns productivity into a game with rewards, achievements, and Google Calendar integration.
-
----
-
-## 🚀 Getting Started
-
-### Prerequisites
-
-- Node.js (v16 or higher)  
-- PostgreSQL (v12 or higher)  
-- Expo CLI  
-- Google Cloud Console account  
-
----
-
-### Backend Setup
+### Running the Full Application
 
 ```bash
-# Clone the repo and navigate to backend
-git clone https://github.com/Skedlyze/Skedlyze.git
-cd Skedlyze/server
-
-# Install dependencies
-npm install
-
-# Copy environment file and edit it with your config
-cp env.example .env
-# Edit .env to set DB and Google OAuth details
-
-# Create PostgreSQL database
-createdb skedlyze_dev
-
-# Run database migrations
-npm run migrate
-
-# Seed initial data
-npm run seed
-
-# Start backend development server
+# From the root directory, run both server and client
 npm run dev
-Frontend Setup
-bash
-Copy
-Edit
-# Move to client directory
-cd ../client
+```
 
-# Install frontend dependencies
-npm install
+This will start:
+- Backend server on http://localhost:5000
+- Frontend web app on http://localhost:3000
 
-# Start Expo development server
-npm start
-Running on Device or Simulator
-Install Expo Go on your mobile device
+---
 
-Scan the QR code shown in your terminal or Expo DevTools
+## 🏗️ Architecture
 
-Or press i for iOS simulator, a for Android emulator (if configured)
+### Backend (Node.js + Express)
+- **Database**: PostgreSQL with Knex.js ORM
+- **Authentication**: Google OAuth 2.0 with Passport.js
+- **API**: RESTful API with Express.js
+- **Calendar Integration**: Google Calendar API
 
-📱 Usage Overview
-Authentication
-Launch the app and tap "Continue with Google"
+### Frontend (React + Vite)
+- **Framework**: React 18 with hooks
+- **UI Library**: Material-UI (MUI)
+- **Build Tool**: Vite
+- **Routing**: React Router DOM
+- **HTTP Client**: Axios
 
-Sign in with your Google account
+---
 
-Allow calendar access permission
+## 📋 Features
 
-Task Management
-Tap the "+" button to create new tasks
+### Task Management
+- Create, edit, delete, and complete tasks
+- Set priorities (low, medium, high)
+- Categorize tasks (work, personal, health, learning, social)
+- Set due dates and reminders
+- Track completion time
 
-Assign priority (low, medium, high) and categories (work, personal, health, etc.)
+### Gamification
+- Experience points (XP) for completing tasks
+- Level progression system
+- Achievement system with badges
+- Daily and weekly streaks
+- Task completion statistics
 
-Complete tasks to earn experience points (XP) and level up
+### Google Calendar Integration
+- Sync tasks to Google Calendar
+- Import calendar events as tasks
+- Two-way synchronization
+- Calendar event management
 
-Calendar Integration
-Enable calendar sync in Profile → Settings → Calendar Sync
+### User Experience
+- Modern, responsive web interface
+- Real-time task updates
+- Progress tracking and analytics
+- Onboarding flow for new users
+- Achievement notifications
 
-Sync your tasks to Google Calendar from the Calendar screen
+---
 
-View and manage tasks alongside your events
+## 🗄️ Database Schema
 
-Gamification
-Earn XP by completing tasks
+### Users Table
+- Basic profile information
+- Google OAuth integration
+- Gamification stats (level, XP, streaks)
+- Preferences and settings
 
-Level up every 100 XP gained
+### Tasks Table
+- Task details (title, description, priority)
+- Scheduling (due date, start/end time)
+- Status tracking (pending, in progress, completed)
+- Google Calendar integration fields
+- Gamification fields (XP reward, completion time)
 
-Unlock achievements for milestones
+### Achievements Table
+- Achievement definitions
+- Unlock conditions
+- XP rewards
 
-Keep daily streaks for bonus rewards
+### User Achievements Table
+- User achievement progress
+- Unlock dates
+- Completion status
 
-🏗️ Architecture
-Backend
-Node.js + Express server
+---
 
-PostgreSQL database with Knex.js migrations/seeds
+## 🔧 Development
 
-Google OAuth with Passport.js
+### Available Scripts
 
-RESTful API for auth, tasks, users, calendar, and gamification
+```bash
+# Install all dependencies
+npm run install:all
 
-Frontend
-React Native with Expo
+# Start development servers
+npm run dev
 
-Google OAuth flow
+# Database operations
+npm run migrate    # Run migrations
+npm run seed       # Seed database
+npm run db:reset   # Reset database
 
-Gamified UI with progress bars and achievements
+# Build for production
+npm run build
+```
 
-Cross-platform support (iOS & Android)
+### Environment Variables
 
-🛠️ Available Scripts
-Backend
-bash
-Copy
-Edit
-npm run dev          # Start development server
-npm run migrate      # Run migrations
-npm run seed         # Seed database
-npm run db:reset     # Reset database and reseed
-Frontend
-bash
-Copy
-Edit
-npm start            # Start Expo server
-npm run android      # Run on Android emulator
-npm run ios          # Run on iOS simulator
-npm run web          # Run in web browser
-🔧 Environment Variables
-Variable	Description	Required
-NODE_ENV	Environment (development/production)	Yes
-PORT	Server port	No (default: 5000)
-SESSION_SECRET	Session encryption key	Yes
-DB_HOST	PostgreSQL host	Yes
-DB_NAME	Database name	Yes
-DB_USER	Database username	Yes
-DB_PASSWORD	Database password	Yes
-GOOGLE_CLIENT_ID	Google OAuth client ID	Yes
-GOOGLE_CLIENT_SECRET	Google OAuth client secret	Yes
-GOOGLE_CALLBACK_URL	OAuth callback URL	Yes
-CLIENT_URL	Frontend URL	Yes
+Create a `.env` file in the server directory:
 
-📄 License
+```env
+# Database
+DB_HOST=localhost
+DB_PORT=5432
+DB_NAME=skedlyze_dev
+DB_USER=postgres
+DB_PASSWORD=your_password
+
+# Google OAuth
+GOOGLE_CLIENT_ID=your_google_client_id
+GOOGLE_CLIENT_SECRET=your_google_client_secret
+
+# Session
+SESSION_SECRET=your_session_secret
+
+# Environment
+NODE_ENV=development
+CLIENT_URL=http://localhost:3000
+```
+
+---
+
+## 🚀 Deployment
+
+### Backend Deployment
+1. Set up PostgreSQL database
+2. Configure environment variables
+3. Run migrations and seeds
+4. Deploy to your preferred hosting service
+
+### Frontend Deployment
+1. Build the application: `npm run build`
+2. Deploy the `dist` folder to your web hosting service
+
+---
+
+## 🤝 Contributing
+
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Add tests if applicable
+5. Submit a pull request
+
+---
+
+## 📄 License
+
 This project is licensed under the ISC License.
-
-🤝 Contributing
-Fork the repository
-
-Create a feature branch (git checkout -b feature/your-feature)
-
-Commit your changes (git commit -m 'Add feature')
-
-Push to your branch (git push origin feature/your-feature)
-
-Open a Pull Request
-
-🆘 Support
-If you have any issues or questions, please create an issue on GitHub or check the documentation.

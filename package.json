@@ -1,13 +1,13 @@
 {
   "name": "skedlyze",
   "version": "1.0.0",
-  "description": "A gamified lifestyle app with Google authentication and calendar integration",
+  "description": "A gamified lifestyle web app with Google authentication and calendar integration",
   "main": "index.js",
   "scripts": {
-    "install:all": "npm install && cd server && npm install && cd ../client && npm install",
-    "dev": "concurrently \"npm run dev:server\" \"npm run dev:client\"",
+    "install:all": "npm install && cd server && npm install && cd ../web-client && npm install",
+    "dev": "concurrently \"npm run dev:server\" \"npm run dev:web\"",
     "dev:server": "cd server && npm run dev",
-    "dev:client": "cd client && npm start",
+    "dev:web": "cd web-client && npm run dev",
     "build": "cd server && npm run build",
     "start": "cd server && npm start",
     "migrate": "cd server && npm run migrate",
@@ -20,8 +20,7 @@
     "gamification",
     "google-calendar",
     "productivity",
-    "react-native",
-    "expo",
+    "react",
     "nodejs",
     "express",
     "postgresql"
@@ -33,6 +32,6 @@
   },
   "workspaces": [
     "server",
-    "client"
+    "web-client"
   ]
 } 

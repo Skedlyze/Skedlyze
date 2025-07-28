@@ -3,9 +3,22 @@ const passport = require('passport');
 const router = express.Router();
 
 // Google OAuth login
-router.get('/google', passport.authenticate('google', {
-  scope: ['profile', 'email', 'https://www.googleapis.com/auth/calendar']
-}));
+router.get('/google', (req, res, next) => {
+  // Check if we need to force calendar scope
+  const forceCalendar = req.query.force_calendar === 'true';
+  
+  if (forceCalendar) {
+    // Force re-authentication with calendar scope
+    passport.authenticate('google', {
+      scope: ['profile', 'email', 'https://www.googleapis.com/auth/calendar'],
+      accessType: 'offline',
+      prompt: 'consent'
+    })(req, res, next);
+  } else {
+    // Normal authentication
+    passport.authenticate('google')(req, res, next);
+  }
+});
 
 // Google OAuth callback
 router.get('/google/callback', 

@@ -1,12 +1,10 @@
 const db = require('../db/knex');
+const GamificationService = require('./gamificationService');
 
 // Check for task completion achievements
 const checkTaskCompletionAchievements = async (userId) => {
   try {
-    const user = await db('users')
-      .where({ id: userId })
-      .select('total_tasks_completed')
-      .first();
+    const gamificationData = await GamificationService.getUserData(userId);
 
     // Get all task completion achievements
     const achievements = await db('achievements')
@@ -15,7 +13,7 @@ const checkTaskCompletionAchievements = async (userId) => {
 
     for (const achievement of achievements) {
       // Check if user meets the requirement
-      if (user.total_tasks_completed >= achievement.requirement_value) {
+      if (gamificationData.total_tasks_completed >= achievement.requirement_value) {
         // Check if user already has this achievement
         const existingAchievement = await db('user_achievements')
           .where({ 
@@ -33,11 +31,9 @@ const checkTaskCompletionAchievements = async (userId) => {
             is_read: false
           });
 
-          // Award experience points
+          // Award experience points using the gamification service
           if (achievement.experience_reward > 0) {
-            await db('users')
-              .where({ id: userId })
-              .increment('experience_points', achievement.experience_reward);
+            await GamificationService.addExperience(userId, achievement.experience_reward, 'achievement');
           }
         }
       }
@@ -50,10 +46,7 @@ const checkTaskCompletionAchievements = async (userId) => {
 // Check for streak achievements
 const checkStreakAchievements = async (userId) => {
   try {
-    const user = await db('users')
-      .where({ id: userId })
-      .select('streak_days')
-      .first();
+    const gamificationData = await GamificationService.getUserData(userId);
 
     // Get all streak achievements
     const achievements = await db('achievements')
@@ -62,7 +55,7 @@ const checkStreakAchievements = async (userId) => {
 
     for (const achievement of achievements) {
       // Check if user meets the requirement
-      if (user.streak_days >= achievement.requirement_value) {
+      if (gamificationData.current_streak_days >= achievement.requirement_value) {
         // Check if user already has this achievement
         const existingAchievement = await db('user_achievements')
           .where({ 
@@ -80,11 +73,9 @@ const checkStreakAchievements = async (userId) => {
             is_read: false
           });
 
-          // Award experience points
+          // Award experience points using the gamification service
           if (achievement.experience_reward > 0) {
-            await db('users')
-              .where({ id: userId })
-              .increment('experience_points', achievement.experience_reward);
+            await GamificationService.addExperience(userId, achievement.experience_reward, 'achievement');
           }
         }
       }
@@ -97,10 +88,7 @@ const checkStreakAchievements = async (userId) => {
 // Check for level up achievements
 const checkLevelUpAchievements = async (userId) => {
   try {
-    const user = await db('users')
-      .where({ id: userId })
-      .select('level')
-      .first();
+    const gamificationData = await GamificationService.getUserData(userId);
 
     // Get all level up achievements
     const achievements = await db('achievements')
@@ -109,7 +97,7 @@ const checkLevelUpAchievements = async (userId) => {
 
     for (const achievement of achievements) {
       // Check if user meets the requirement
-      if (user.level >= achievement.requirement_value) {
+      if (gamificationData.level >= achievement.requirement_value) {
         // Check if user already has this achievement
         const existingAchievement = await db('user_achievements')
           .where({ 
@@ -127,17 +115,31 @@ const checkLevelUpAchievements = async (userId) => {
             is_read: false
           });
 
-          // Award experience points
+          // Award experience points using the gamification service
           if (achievement.experience_reward > 0) {
-            await db('users')
-              .where({ id: userId })
-              .increment('experience_points', achievement.experience_reward);
+            await GamificationService.addExperience(userId, achievement.experience_reward, 'achievement');
           }
         }
       }
     }
   } catch (error) {
     console.error('Error checking level up achievements:', error);
+  }
+};
+
+// Check all achievements for a user
+const checkAllAchievements = async (userId) => {
+  try {
+    console.log(`🔍 Checking all achievements for user ${userId}`);
+    
+    // Check all types of achievements
+    await checkTaskCompletionAchievements(userId);
+    await checkStreakAchievements(userId);
+    await checkLevelUpAchievements(userId);
+    
+    console.log(`✅ Achievement check completed for user ${userId}`);
+  } catch (error) {
+    console.error('Error checking all achievements:', error);
   }
 };
 
@@ -184,6 +186,26 @@ const updateUserStreak = async (userId) => {
     }
   } catch (error) {
     console.error('Error updating user streak:', error);
+  }
+};
+
+// Get user's achievements
+const getUserAchievements = async (userId) => {
+  try {
+    const achievements = await db('user_achievements')
+      .join('achievements', 'user_achievements.achievement_id', 'achievements.id')
+      .where({ 'user_achievements.user_id': userId })
+      .select(
+        'achievements.*',
+        'user_achievements.earned_at',
+        'user_achievements.is_read'
+      )
+      .orderBy('user_achievements.earned_at', 'desc');
+
+    return achievements;
+  } catch (error) {
+    console.error('Error fetching user achievements:', error);
+    throw error;
   }
 };
 
@@ -311,6 +333,8 @@ module.exports = {
   checkTaskCompletionAchievements,
   checkStreakAchievements,
   checkLevelUpAchievements,
+  checkAllAchievements,
+  getUserAchievements,
   updateUserStreak,
   initializeDefaultAchievements
 }; 
