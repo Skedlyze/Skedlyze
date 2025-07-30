@@ -2,9 +2,52 @@ const db = require('../db/knex');
 const GamificationService = require('../services/gamificationService');
 const achievementService = require('../services/achievementService');
 
+// Helper function to calculate experience needed for next level
+const calculateExperienceToNextLevel = (currentXP, currentLevel) => {
+  let totalRequired = 0;
+  
+  // Calculate total XP required for current level
+  for (let level = 1; level <= currentLevel; level++) {
+    const requiredForLevel = 50 + (50 * level);
+    totalRequired += requiredForLevel;
+  }
+  
+  // Calculate total XP required for next level
+  const nextLevelRequired = totalRequired + (50 + (50 * (currentLevel + 1)));
+  
+  return nextLevelRequired - currentXP;
+};
+
+// Helper function to calculate progress percentage
+const calculateProgressPercentage = (currentXP, currentLevel) => {
+  let totalRequiredForCurrentLevel = 0;
+  
+  // Calculate total XP required for current level
+  for (let level = 1; level <= currentLevel; level++) {
+    const requiredForLevel = 50 + (50 * level);
+    totalRequiredForCurrentLevel += requiredForLevel;
+  }
+  
+  // Calculate XP needed for next level
+  const xpForNextLevel = 50 + (50 * (currentLevel + 1));
+  
+  // Calculate progress within current level
+  const xpInCurrentLevel = currentXP - totalRequiredForCurrentLevel;
+  const progress = (xpInCurrentLevel / xpForNextLevel) * 100;
+  
+  return Math.max(0, Math.min(100, progress));
+};
+
 // Get user profile
 const getProfile = async (req, res) => {
   try {
+    // Update streak on profile access (daily login check)
+    try {
+      await GamificationService.updateStreak(req.user.id);
+    } catch (streakError) {
+      console.error('Error updating streak on profile access:', streakError);
+    }
+
     // Get user's gamification data
     const gamificationData = await GamificationService.getUserData(req.user.id);
     
@@ -104,6 +147,13 @@ const getUserStats = async (req, res) => {
       console.error('Error checking achievements on stats access:', achievementError);
     }
 
+    // Calculate completion rate directly from task stats
+    const totalTasks = parseInt(taskStats.total_tasks) || 0;
+    const completedTasks = parseInt(taskStats.completed_tasks) || 0;
+    const completionRate = totalTasks > 0 
+      ? Math.round((completedTasks / totalTasks) * 100) 
+      : 0;
+
     const stats = {
       user: {
         level: gamificationData.level,
@@ -116,8 +166,8 @@ const getUserStats = async (req, res) => {
       recentTasks,
       taskStats,
       categoryStats,
-      experienceToNextLevel: 100 - (gamificationData.experience_points % 100),
-      completionRate: gamificationData.completion_rate,
+      experienceToNextLevel: calculateExperienceToNextLevel(gamificationData.experience_points, gamificationData.level),
+      completionRate: completionRate,
       gamificationData
     };
 
@@ -194,9 +244,9 @@ const getUserLevel = async (req, res) => {
     const levelInfo = {
       currentLevel: user.level,
       currentExperience: user.experience_points,
-      experienceToNextLevel: 100 - (user.experience_points % 100),
-      totalExperienceForNextLevel: 100,
-      progressPercentage: (user.experience_points % 100)
+      experienceToNextLevel: calculateExperienceToNextLevel(user.experience_points, user.level),
+      totalExperienceForNextLevel: 50 + (50 * (user.level + 1)),
+      progressPercentage: calculateProgressPercentage(user.experience_points, user.level)
     };
 
     res.json(levelInfo);

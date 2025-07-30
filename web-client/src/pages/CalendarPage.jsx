@@ -178,102 +178,134 @@ const WeeklyView = ({ events, onEventClick, getEventColor, formatEventTime }) =>
     });
   };
 
+  const timeSlots = [
+    '6 AM', '7 AM', '8 AM', '9 AM', '10 AM', '11 AM', '12 PM',
+    '1 PM', '2 PM', '3 PM', '4 PM', '5 PM', '6 PM', '7 PM', '8 PM', '9 PM', '10 PM'
+  ];
+
   return (
-    <Box sx={{ height: '70vh', overflow: 'auto' }}>
-      <Typography variant="h5" sx={{ mb: 2, textAlign: 'center' }}>
+    <Box sx={{ height: '80vh', overflow: 'auto' }}>
+      <Typography variant="h5" sx={{ mb: 3, textAlign: 'center', fontWeight: 'bold' }}>
         Week of {startOfWeek.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - {days[6].toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
       </Typography>
       
-      <TableContainer component={Paper} sx={{ height: 'calc(100% - 80px)' }}>
-        <Table stickyHeader>
-          <TableHead>
-            <TableRow>
-              <TableCell sx={{ width: 100, backgroundColor: '#f5f5f5' }}>Time</TableCell>
-              {days.map((day, index) => (
-                <TableCell 
-                  key={index} 
-                  align="center"
-                  sx={{ 
-                    backgroundColor: '#f5f5f5',
-                    fontWeight: 'bold',
-                    color: day.toDateString() === today.toDateString() ? 'primary.main' : 'inherit'
-                  }}
-                >
-                  <Box>
-                    <Typography variant="body2">
-                      {day.toLocaleDateString('en-US', { weekday: 'short' })}
-                    </Typography>
-                    <Typography variant="h6">
-                      {day.getDate()}
-                    </Typography>
-                  </Box>
-                </TableCell>
-              ))}
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {Array.from({ length: 24 }, (_, hour) => (
-              <TableRow key={hour}>
-                <TableCell 
-                  sx={{ 
-                    backgroundColor: '#fafafa',
-                    borderRight: '1px solid #e0e0e0',
-                    width: 100
-                  }}
-                >
-                  <Typography variant="body2" color="text.secondary">
-                    {hour === 0 ? '12 AM' : hour < 12 ? `${hour} AM` : hour === 12 ? '12 PM' : `${hour - 12} PM`}
-                  </Typography>
-                </TableCell>
-                {days.map((day, dayIndex) => {
-                  const dayEvents = getEventsForDay(day).filter(event => {
-                    const eventStart = new Date(event.start.dateTime || event.start.date);
-                    return eventStart.getHours() === hour;
-                  });
-                  
-                  return (
-                    <TableCell 
-                      key={dayIndex} 
-                      sx={{ 
-                        p: 0.5,
-                        borderRight: dayIndex < 6 ? '1px solid #e0e0e0' : 'none',
-                        minHeight: 60,
-                        verticalAlign: 'top'
-                      }}
-                    >
-                      {dayEvents.map((event, eventIndex) => (
-                        <Card
-                          key={`${event.id}-${eventIndex}`}
-                          sx={{
-                            mb: 0.5,
-                            cursor: 'pointer',
-                            backgroundColor: getEventColor(event),
-                            color: 'white',
-                            fontSize: '0.75rem',
-                            '&:hover': { opacity: 0.8 }
-                          }}
-                          onClick={() => onEventClick(event)}
-                        >
-                          <CardContent sx={{ p: 0.5 }}>
-                            <Typography variant="caption" fontWeight="bold" noWrap>
-                              {event.summary || 'Untitled'}
-                            </Typography>
-                            {event.calendarSummary && (
-                              <Typography variant="caption" sx={{ opacity: 0.8, fontSize: '0.6rem' }}>
-                                {event.calendarSummary}
-                              </Typography>
-                            )}
-                          </CardContent>
-                        </Card>
-                      ))}
-                    </TableCell>
-                  );
-                })}
-              </TableRow>
+      <Paper sx={{ height: 'calc(100% - 100px)', overflow: 'auto' }}>
+        <Grid container sx={{ height: '100%' }}>
+          {/* Time column */}
+          <Grid item xs={1} sx={{ borderRight: '1px solid #e0e0e0' }}>
+            <Box sx={{ 
+              height: 80, 
+              borderBottom: '1px solid #e0e0e0',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              backgroundColor: '#f8f9fa',
+              fontWeight: 'bold'
+            }}>
+              <Typography variant="body2" color="text.secondary">
+                Time
+              </Typography>
+            </Box>
+            {timeSlots.map((time, index) => (
+              <Box
+                key={time}
+                sx={{
+                  height: 60,
+                  borderBottom: '1px solid #f0f0f0',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  backgroundColor: '#fafafa'
+                }}
+              >
+                <Typography variant="caption" color="text.secondary">
+                  {time}
+                </Typography>
+              </Box>
             ))}
-          </TableBody>
-        </Table>
-      </TableContainer>
+          </Grid>
+
+          {/* Days columns */}
+          {days.map((day, dayIndex) => (
+            <Grid item xs key={dayIndex} sx={{ borderRight: dayIndex < 6 ? '1px solid #e0e0e0' : 'none' }}>
+              {/* Day header */}
+              <Box sx={{ 
+                height: 80, 
+                borderBottom: '1px solid #e0e0e0',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                backgroundColor: day.toDateString() === today.toDateString() ? 'primary.light' : '#f8f9fa',
+                color: day.toDateString() === today.toDateString() ? 'white' : 'inherit'
+              }}>
+                <Typography variant="body2" fontWeight="bold">
+                  {day.toLocaleDateString('en-US', { weekday: 'short' })}
+                </Typography>
+                <Typography variant="h6" fontWeight="bold">
+                  {day.getDate()}
+                </Typography>
+              </Box>
+
+              {/* Time slots */}
+              {timeSlots.map((time, timeIndex) => {
+                const hour = timeIndex + 6; // Convert to 24-hour format
+                const dayEvents = getEventsForDay(day).filter(event => {
+                  const eventStart = new Date(event.start.dateTime || event.start.date);
+                  return eventStart.getHours() === hour;
+                });
+
+                return (
+                  <Box
+                    key={`${dayIndex}-${timeIndex}`}
+                    sx={{
+                      height: 60,
+                      borderBottom: '1px solid #f0f0f0',
+                      p: 0.5,
+                      position: 'relative',
+                      '&:hover': {
+                        backgroundColor: '#f5f5f5'
+                      }
+                    }}
+                  >
+                    {dayEvents.map((event, eventIndex) => (
+                      <Card
+                        key={`${event.id}-${eventIndex}`}
+                        sx={{
+                          mb: 0.5,
+                          cursor: 'pointer',
+                          backgroundColor: getEventColor(event),
+                          color: 'white',
+                          fontSize: '0.75rem',
+                          maxHeight: 50,
+                          overflow: 'hidden',
+                          '&:hover': { 
+                            opacity: 0.9,
+                            transform: 'scale(1.02)',
+                            transition: 'all 0.2s ease'
+                          }
+                        }}
+                        onClick={() => onEventClick(event)}
+                      >
+                        <CardContent sx={{ p: 0.5 }}>
+                          <Typography variant="caption" fontWeight="bold" noWrap>
+                            {event.summary || 'Untitled'}
+                          </Typography>
+                          {event.calendarSummary && (
+                            <Typography variant="caption" sx={{ opacity: 0.8, fontSize: '0.6rem' }}>
+                              {event.calendarSummary}
+                            </Typography>
+                          )}
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </Box>
+                );
+              })}
+            </Grid>
+          ))}
+        </Grid>
+      </Paper>
     </Box>
   );
 };
@@ -488,8 +520,6 @@ const CalendarPage = () => {
       // If it's a 401 error, user needs to authenticate
       if (err.response?.status === 401) {
         setError('You need to sign in to access calendar features. Please sign in with Google.');
-      } else if (err.response?.status === 500) {
-        setError('Google Calendar integration is not configured. Please set up Google OAuth credentials to use calendar features.');
       } else {
         setError('Failed to load calendars. Please try again.');
       }
@@ -503,27 +533,57 @@ const CalendarPage = () => {
       setLoading(true);
       setError(null);
       
-      const timeMin = new Date().toISOString();
-      let timeMax;
+      let timeMin, timeMax;
       
       switch (timeRange) {
         case 'today':
-          timeMax = new Date(new Date().setHours(23, 59, 59, 999)).toISOString();
+          // Today only - from start of day to end of day
+          const today = new Date();
+          today.setHours(0, 0, 0, 0);
+          timeMin = today.toISOString();
+          timeMax = new Date(today.getTime() + 24 * 60 * 60 * 1000 - 1).toISOString();
           break;
         case 'week':
-          timeMax = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+          // Current week - from start of week to end of week
+          const now = new Date();
+          const startOfWeek = new Date(now);
+          startOfWeek.setDate(now.getDate() - now.getDay()); // Start of week (Sunday)
+          startOfWeek.setHours(0, 0, 0, 0);
+          timeMin = startOfWeek.toISOString();
+          
+          const endOfWeek = new Date(startOfWeek);
+          endOfWeek.setDate(startOfWeek.getDate() + 7); // End of week (next Sunday)
+          endOfWeek.setHours(0, 0, 0, 0);
+          timeMax = endOfWeek.toISOString();
           break;
         case 'month':
-          timeMax = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
+          // Current month - from start of month to end of month
+          const currentMonth = new Date();
+          const startOfMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), 1);
+          timeMin = startOfMonth.toISOString();
+          
+          const endOfMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 0);
+          endOfMonth.setHours(23, 59, 59, 999);
+          timeMax = endOfMonth.toISOString();
           break;
         default:
-          timeMax = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+          // Default to current week
+          const defaultNow = new Date();
+          const defaultStartOfWeek = new Date(defaultNow);
+          defaultStartOfWeek.setDate(defaultNow.getDate() - defaultNow.getDay());
+          defaultStartOfWeek.setHours(0, 0, 0, 0);
+          timeMin = defaultStartOfWeek.toISOString();
+          
+          const defaultEndOfWeek = new Date(defaultStartOfWeek);
+          defaultEndOfWeek.setDate(defaultStartOfWeek.getDate() + 7);
+          defaultEndOfWeek.setHours(0, 0, 0, 0);
+          timeMax = defaultEndOfWeek.toISOString();
       }
 
       const response = await calendarService.getEvents({ 
         timeMin, 
         timeMax, 
-        maxResults: 50,
+        maxResults: 100, // Increased to get more events
         calendarIds: selectedCalendars.join(',')
       });
       setEvents(response);

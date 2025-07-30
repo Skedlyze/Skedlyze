@@ -98,10 +98,18 @@ function ProfilePage() {
           <Card>
             <CardContent sx={{ textAlign: 'center' }}>
               <Avatar
-                src={user?.avatar}
-                sx={{ width: 120, height: 120, mx: 'auto', mb: 2 }}
+                src={user?.picture}
+                sx={{ 
+                  width: 120, 
+                  height: 120, 
+                  mx: 'auto', 
+                  mb: 2,
+                  fontSize: '3rem',
+                  fontWeight: 'bold',
+                  backgroundColor: 'primary.main'
+                }}
               >
-                {user?.name?.charAt(0)}
+                {user?.name?.charAt(0)?.toUpperCase()}
               </Avatar>
               <Typography variant="h5" gutterBottom sx={{ fontWeight: 'bold' }}>
                 {user?.name}

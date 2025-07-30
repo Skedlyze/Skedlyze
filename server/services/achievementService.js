@@ -319,6 +319,112 @@ const initializeDefaultAchievements = async () => {
         requirement_value: 50,
         experience_reward: 500,
         is_hidden: false
+      },
+
+      // Speed achievements
+      {
+        name: 'Speed Demon',
+        description: 'Complete 5 tasks in a single day',
+        type: 'daily_tasks',
+        requirement_value: 5,
+        experience_reward: 75,
+        is_hidden: false
+      },
+      {
+        name: 'Daily Grinder',
+        description: 'Complete 10 tasks in a single day',
+        type: 'daily_tasks',
+        requirement_value: 10,
+        experience_reward: 150,
+        is_hidden: false
+      },
+
+      // Category achievements
+      {
+        name: 'Workaholic',
+        description: 'Complete 20 work tasks',
+        type: 'category_completion',
+        requirement_value: 20,
+        experience_reward: 100,
+        is_hidden: false
+      },
+      {
+        name: 'Health Enthusiast',
+        description: 'Complete 15 health tasks',
+        type: 'category_completion',
+        requirement_value: 15,
+        experience_reward: 80,
+        is_hidden: false
+      },
+      {
+        name: 'Knowledge Seeker',
+        description: 'Complete 10 learning tasks',
+        type: 'category_completion',
+        requirement_value: 10,
+        experience_reward: 60,
+        is_hidden: false
+      },
+
+      // Consistency achievements
+      {
+        name: 'Perfect Week',
+        description: 'Complete at least one task every day for 7 days',
+        type: 'consistency',
+        requirement_value: 7,
+        experience_reward: 200,
+        is_hidden: false
+      },
+      {
+        name: 'Consistency King',
+        description: 'Complete at least one task every day for 30 days',
+        type: 'consistency',
+        requirement_value: 30,
+        experience_reward: 500,
+        is_hidden: false
+      },
+
+      // Efficiency achievements
+      {
+        name: 'Efficiency Expert',
+        description: 'Maintain a 90% completion rate with at least 10 tasks',
+        type: 'completion_rate',
+        requirement_value: 90,
+        experience_reward: 300,
+        is_hidden: false
+      },
+      {
+        name: 'Perfectionist',
+        description: 'Maintain a 95% completion rate with at least 20 tasks',
+        type: 'completion_rate',
+        requirement_value: 95,
+        experience_reward: 400,
+        is_hidden: false
+      },
+
+      // Special achievements
+      {
+        name: 'Early Bird',
+        description: 'Complete a task before 8 AM',
+        type: 'early_bird',
+        requirement_value: 1,
+        experience_reward: 50,
+        is_hidden: true
+      },
+      {
+        name: 'Night Owl',
+        description: 'Complete a task after 10 PM',
+        type: 'night_owl',
+        requirement_value: 1,
+        experience_reward: 50,
+        is_hidden: true
+      },
+      {
+        name: 'Weekend Warrior',
+        description: 'Complete 5 tasks on a weekend',
+        type: 'weekend_tasks',
+        requirement_value: 5,
+        experience_reward: 100,
+        is_hidden: false
       }
     ];
 

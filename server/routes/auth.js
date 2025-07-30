@@ -27,8 +27,8 @@ router.get('/google/callback',
     failureMessage: true
   }),
   (req, res) => {
-    // Successful authentication, redirect to client app
-    res.redirect(process.env.CLIENT_URL || 'http://localhost:3000');
+    // Successful authentication, redirect to dashboard
+    res.redirect(process.env.CLIENT_URL || 'http://localhost:3000/dashboard');
   }
 );
 

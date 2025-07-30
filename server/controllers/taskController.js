@@ -187,6 +187,9 @@ const updateTask = async (req, res) => {
       return res.status(404).json({ error: 'Task not found' });
     }
 
+    // Check if task is being unchecked (completed -> not completed)
+    const isBeingUnchecked = task.is_completed && req.body.is_completed === false;
+    
     const [updatedTask] = await db('tasks')
       .where({ id: req.params.id })
       .update({
@@ -194,6 +197,49 @@ const updateTask = async (req, res) => {
         updated_at: new Date()
       })
       .returning('*');
+
+    // If task is being unchecked, deduct XP
+    if (isBeingUnchecked && task.completed_at) {
+      try {
+        // Calculate XP to deduct based on original priority
+        let experienceToDeduct;
+        switch (task.priority) {
+          case 'low':
+            experienceToDeduct = 5;
+            break;
+          case 'high':
+            experienceToDeduct = 20;
+            break;
+          default: // medium
+            experienceToDeduct = 10;
+            break;
+        }
+
+        // Deduct experience and update stats
+        const experienceResult = await GamificationService.removeExperience(req.user.id, experienceToDeduct, 'task_uncompletion');
+        await GamificationService.updateTaskStats(req.user.id, false, false); // Decrease completed count
+        await GamificationService.updateCategoryStats(req.user.id, task.category, false); // Decrease category count
+
+        // Return updated task with XP deduction info
+        res.json({
+          task: updatedTask,
+          experienceLost: experienceResult.experienceLost,
+          levelDown: experienceResult.levelDown,
+          newLevel: experienceResult.levelDown ? experienceResult.level : null
+        });
+        return;
+      } catch (gamificationError) {
+        console.error('Gamification service error (non-blocking):', gamificationError);
+        // Still return the updated task even if gamification fails
+        res.json({
+          task: updatedTask,
+          experienceLost: 0,
+          levelDown: false,
+          newLevel: null
+        });
+        return;
+      }
+    }
 
     res.json(updatedTask);
   } catch (error) {
@@ -237,6 +283,14 @@ const deleteTask = async (req, res) => {
     }
 
     await db('tasks').where({ id: req.params.id }).del();
+
+    // Update user's gamification data after task deletion
+    try {
+      await GamificationService.updateTaskStats(req.user.id, false, false);
+      await GamificationService.updateCategoryStats(req.user.id, task.category, false);
+    } catch (gamificationError) {
+      console.error('Gamification service error after task deletion (non-blocking):', gamificationError);
+    }
 
     res.json({ message: 'Task deleted successfully' });
   } catch (error) {

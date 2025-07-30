@@ -31,11 +31,11 @@ import { useAuth } from '../context/AuthContext'
 const drawerWidth = 240
 
 const menuItems = [
-  { text: 'Dashboard', icon: <Dashboard />, path: '/' },
-  { text: 'Tasks', icon: <Task />, path: '/tasks' },
-  { text: 'Calendar', icon: <CalendarToday />, path: '/calendar' },
-  { text: 'Achievements', icon: <EmojiEvents />, path: '/achievements' },
-  { text: 'Profile', icon: <Person />, path: '/profile' },
+  { text: 'Dashboard', icon: <Dashboard />, path: '/dashboard' },
+  { text: 'Tasks', icon: <Task />, path: '/dashboard/tasks' },
+  { text: 'Calendar', icon: <CalendarToday />, path: '/dashboard/calendar' },
+  { text: 'Achievements', icon: <EmojiEvents />, path: '/dashboard/achievements' },
+  { text: 'Profile', icon: <Person />, path: '/dashboard/profile' },
 ]
 
 function Layout() {
@@ -59,14 +59,27 @@ function Layout() {
 
   const handleLogout = async () => {
     await logout()
-    navigate('/login')
+    navigate('/')
     handleProfileMenuClose()
   }
 
   const drawer = (
     <div>
       <Toolbar>
-        <Typography variant="h6" noWrap component="div" sx={{ color: 'primary.main', fontWeight: 'bold' }}>
+        <Typography 
+          variant="h6" 
+          noWrap 
+          component="div" 
+          sx={{ 
+            color: 'primary.main', 
+            fontWeight: 'bold',
+            cursor: 'pointer',
+            '&:hover': {
+              opacity: 0.8
+            }
+          }}
+          onClick={() => navigate('/')}
+        >
           Skedlyze
         </Typography>
       </Toolbar>
@@ -119,10 +132,16 @@ function Layout() {
             sx={{ ml: 1 }}
           >
             <Avatar
-              src={user?.avatar}
-              sx={{ width: 32, height: 32 }}
+              src={user?.picture}
+              sx={{ 
+                width: 32, 
+                height: 32,
+                fontSize: '1rem',
+                fontWeight: 'bold',
+                backgroundColor: 'primary.main'
+              }}
             >
-              {user?.name?.charAt(0)}
+              {user?.name?.charAt(0)?.toUpperCase()}
             </Avatar>
           </IconButton>
         </Toolbar>

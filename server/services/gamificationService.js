@@ -44,7 +44,22 @@ class GamificationService {
       
       const newTotalExperience = gamificationData.total_experience_earned + experiencePoints;
       const newExperiencePoints = gamificationData.experience_points + experiencePoints;
-      const newLevel = Math.floor(newExperiencePoints / 100) + 1;
+      
+      // Calculate new level using formula: 50 + 50L where L is the level
+      // Level 1: 100 XP, Level 2: 150 XP, Level 3: 200 XP, etc.
+      let newLevel = 1;
+      let totalRequired = 0;
+      
+      for (let level = 1; level <= 100; level++) { // Cap at level 100 to prevent infinite loop
+        const requiredForLevel = 50 + (50 * level);
+        totalRequired += requiredForLevel;
+        
+        if (newExperiencePoints >= totalRequired) {
+          newLevel = level + 1;
+        } else {
+          break;
+        }
+      }
       
       const updates = {
         experience_points: newExperiencePoints,
@@ -78,6 +93,54 @@ class GamificationService {
       };
     } catch (error) {
       console.error('Error adding experience:', error);
+      throw error;
+    }
+  }
+
+  // Remove experience points and handle level down
+  static async removeExperience(userId, experiencePoints, reason = 'task_uncompletion') {
+    try {
+      const gamificationData = await this.getUserData(userId);
+      
+      const newExperiencePoints = Math.max(0, gamificationData.experience_points - experiencePoints);
+      
+      // Calculate new level using formula: 50 + 50L where L is the level
+      let newLevel = 1;
+      let totalRequired = 0;
+      
+      for (let level = 1; level <= 100; level++) { // Cap at level 100 to prevent infinite loop
+        const requiredForLevel = 50 + (50 * level);
+        totalRequired += requiredForLevel;
+        
+        if (newExperiencePoints >= totalRequired) {
+          newLevel = level + 1;
+        } else {
+          break;
+        }
+      }
+      
+      const updates = {
+        experience_points: newExperiencePoints,
+        level: newLevel,
+        last_activity_date: new Date()
+      };
+
+      // Check for level down
+      const levelDown = newLevel < gamificationData.level;
+      
+      const [updatedData] = await db('user_gamification_data')
+        .where({ user_id: userId })
+        .update(updates)
+        .returning('*');
+
+      return {
+        ...updatedData,
+        levelDown,
+        experienceLost: experiencePoints,
+        reason
+      };
+    } catch (error) {
+      console.error('Error removing experience:', error);
       throw error;
     }
   }

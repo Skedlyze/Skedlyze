@@ -40,6 +40,7 @@ function TasksPage() {
   const [tasks, setTasks] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+  const [success, setSuccess] = useState(null)
   const [openDialog, setOpenDialog] = useState(false)
   const [newTask, setNewTask] = useState({
     title: '',
@@ -75,14 +76,26 @@ function TasksPage() {
 
       if (task.is_completed) {
         // If already completed, uncomplete it
-        await taskService.update(taskId, { 
+        const response = await taskService.update(taskId, { 
           is_completed: false, 
           status: 'pending',
           completed_at: null 
         })
+        
+        // Show XP deduction feedback
+        if (response.experienceLost) {
+          setError(`Task unchecked! -${response.experienceLost} XP${response.levelDown ? ' (Level down!)' : ''}`)
+          setTimeout(() => setError(null), 3000)
+        }
       } else {
         // Complete the task
-        await taskService.complete(taskId)
+        const response = await taskService.complete(taskId)
+        
+        // Show XP gain feedback
+        if (response.experienceGained) {
+          setSuccess(`Task completed! +${response.experienceGained} XP${response.levelUp ? ' (Level up!)' : ''}`)
+          setTimeout(() => setSuccess(null), 3000)
+        }
       }
       
       // Reload tasks to get updated data
@@ -163,6 +176,12 @@ function TasksPage() {
           {error}
         </Alert>
       )}
+      
+      {success && (
+        <Alert severity="success" sx={{ mb: 2 }} onClose={() => setSuccess(null)}>
+          {success}
+        </Alert>
+      )}
 
       <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
         <Typography variant="h4" sx={{ fontWeight: 'bold' }}>
@@ -212,6 +231,9 @@ function TasksPage() {
                         )}
                         <Typography variant="body2" color="textSecondary">
                           Due: {formatDate(task.due_date)}
+                        </Typography>
+                        <Typography variant="body2" color="primary.main" sx={{ fontWeight: 'bold' }}>
+                          {task.is_completed ? '✓ Completed' : `+${task.experience_reward || 10} XP`}
                         </Typography>
                       </Box>
                     }

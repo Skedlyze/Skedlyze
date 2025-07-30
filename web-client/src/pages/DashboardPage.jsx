@@ -40,6 +40,13 @@ function DashboardPage() {
     const fetchData = async () => {
       try {
         setLoading(true)
+        // Update streak on dashboard access (daily login check)
+        try {
+          await axios.get('/api/users/profile')
+        } catch (streakError) {
+          console.error('Error updating streak on dashboard access:', streakError)
+        }
+        
         const [statsResponse, achievementsResponse] = await Promise.all([
           axios.get('/api/users/stats'),
           axios.get('/api/users/achievements')
@@ -47,6 +54,7 @@ function DashboardPage() {
 
         const statsData = statsResponse.data
         const achievementsData = achievementsResponse.data
+
 
         setStats({
           totalTasks: statsData.user.total_tasks_created || 0,
@@ -93,6 +101,8 @@ function DashboardPage() {
 
   const progressPercentage = stats.xp && stats.nextLevelXp ? (stats.xp / stats.nextLevelXp) * 100 : 0
   const taskCompletionRate = typeof stats.completionRate === 'number' ? stats.completionRate : 0
+  
+
 
   const getPriorityColor = (priority) => {
     switch (priority) {
@@ -150,7 +160,7 @@ function DashboardPage() {
                     Completion Rate
                   </Typography>
                   <Typography variant="h4" sx={{ fontWeight: 'bold' }}>
-                    {taskCompletionRate.toFixed(0)}%
+                    {taskCompletionRate}%
                   </Typography>
                 </Box>
                 <Avatar sx={{ bgcolor: 'success.main' }}>

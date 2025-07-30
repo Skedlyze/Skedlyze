@@ -12,7 +12,7 @@ const authRoutes = require('./routes/auth');
 const taskRoutes = require('./routes/tasks');
 const userRoutes = require('./routes/users');
 const calendarRoutes = require('./routes/calendar');
-const onboardingRoutes = require('./routes/onboarding');
+
 
 // Import middleware
 const isAuthenticated = require('./middleware/isAuthenticated');
@@ -56,7 +56,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/tasks', isAuthenticated, taskRoutes);
 app.use('/api/users', isAuthenticated, userRoutes);
 app.use('/api/calendar', isAuthenticated, calendarRoutes);
-app.use('/api/onboarding', isAuthenticated, onboardingRoutes);
+
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {

@@ -32,13 +32,14 @@ if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_ID !== 'your-googl
       let user = await db('users').where({ google_id: profile.id }).first();
       
       if (user) {
-        // Update existing user's tokens
+        // Update existing user's tokens and refresh profile picture
         await db('users')
           .where({ id: user.id })
           .update({
             access_token: accessToken,
             refresh_token: refreshToken,
             token_expires_at: new Date(Date.now() + 3600 * 1000), // 1 hour
+            picture: profile.photos[0]?.value || user.picture, // Update picture if available
             updated_at: new Date()
           });
         
