@@ -10,6 +10,7 @@ import TasksPage from './pages/TasksPage'
 import ProfilePage from './pages/ProfilePage'
 import AchievementsPage from './pages/AchievementsPage'
 import CalendarPage from './pages/CalendarPage'
+import OfflineIndicator from './components/OfflineIndicator'
 
 function AppContent() {
   const { isAuthenticated, loading } = useAuth()
@@ -32,32 +33,35 @@ function AppContent() {
   }
 
   return (
-    <Routes>
-      {/* Home page is accessible to everyone */}
-      <Route path="/" element={<HomePage />} />
-      
-      {!isAuthenticated ? (
-        <Route path="/login" element={<LoginPage />} />
-      ) : (
-        <>
-          {/* Dashboard and app routes */}
-          <Route path="/dashboard" element={<Layout />}>
-            <Route index element={<DashboardPage />} />
-            <Route path="tasks" element={<TasksPage />} />
-            <Route path="profile" element={<ProfilePage />} />
-            <Route path="achievements" element={<AchievementsPage />} />
-            <Route path="calendar" element={<CalendarPage />} />
-          </Route>
+    <>
+      <OfflineIndicator />
+      <Routes>
+        {/* Home page is accessible to everyone */}
+        <Route path="/" element={<HomePage />} />
+        
+        {!isAuthenticated ? (
+          <Route path="/login" element={<LoginPage />} />
+        ) : (
+          <>
+            {/* Dashboard and app routes */}
+            <Route path="/dashboard" element={<Layout />}>
+              <Route index element={<DashboardPage />} />
+              <Route path="tasks" element={<TasksPage />} />
+              <Route path="profile" element={<ProfilePage />} />
+              <Route path="achievements" element={<AchievementsPage />} />
+              <Route path="calendar" element={<CalendarPage />} />
+            </Route>
 
-        </>
-      )}
-      <Route path="*" element={
-        <Navigate to={
-          !isAuthenticated ? "/" : 
-          "/dashboard" // Go to dashboard for authenticated users
-        } replace />
-      } />
-    </Routes>
+          </>
+        )}
+        <Route path="*" element={
+          <Navigate to={
+            !isAuthenticated ? "/" : 
+            "/dashboard" // Go to dashboard for authenticated users
+          } replace />
+        } />
+      </Routes>
+    </>
   )
 }
 

@@ -1,4 +1,5 @@
 import axios from 'axios';
+import networkService from './networkService';
 
 const API_BASE_URL = '/api';
 
@@ -32,8 +33,8 @@ export const taskService = {
   // Create a new task
   create: async (taskData) => {
     try {
-      const response = await axios.post(`${API_BASE_URL}/tasks`, taskData);
-      return response.data;
+      // Use offline-aware task creation
+      return await networkService.saveOfflineTask(taskData);
     } catch (error) {
       console.error('Error creating task:', error);
       throw error;
