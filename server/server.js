@@ -13,6 +13,7 @@ const taskRoutes = require('./routes/tasks');
 const userRoutes = require('./routes/users');
 const calendarRoutes = require('./routes/calendar');
 
+
 // Import middleware
 const isAuthenticated = require('./middleware/isAuthenticated');
 
@@ -37,7 +38,8 @@ app.use(session({
   resave: false,
   saveUninitialized: false,
   cookie: {
-    secure: process.env.NODE_ENV === 'production',
+    secure: false, // Set to false for development (HTTP)
+    httpOnly: true,
     maxAge: 24 * 60 * 60 * 1000 // 24 hours
   }
 }));
@@ -55,6 +57,7 @@ app.use('/api/tasks', isAuthenticated, taskRoutes);
 app.use('/api/users', isAuthenticated, userRoutes);
 app.use('/api/calendar', isAuthenticated, calendarRoutes);
 
+
 // Health check endpoint
 app.get('/api/health', (req, res) => {
   res.json({ status: 'OK', message: 'Skedlyze API is running' });
@@ -70,7 +73,7 @@ app.use((err, req, res, next) => {
 });
 
 // 404 handler
-app.use('*', (req, res) => {
+app.use((req, res) => {
   res.status(404).json({ error: 'Route not found' });
 });
 

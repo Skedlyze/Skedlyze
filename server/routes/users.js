@@ -29,4 +29,6 @@ router.patch('/calendar-sync', userController.toggleCalendarSync);
 // Get user streak information
 router.get('/streak', userController.getUserStreak);
 
+
+
 module.exports = router; 

@@ -1,6 +1,52 @@
 const db = require('../db/knex');
+const GamificationService = require('../services/gamificationService');
 const { google } = require('googleapis');
-const achievementService = require('../services/achievementService');
+
+// Initialize Google Calendar API
+const getCalendarAPI = (accessToken) => {
+  const oauth2Client = new google.auth.OAuth2(
+    process.env.GOOGLE_CLIENT_ID,
+    process.env.GOOGLE_CLIENT_SECRET,
+    process.env.GOOGLE_CALLBACK_URL
+  );
+  
+  oauth2Client.setCredentials({
+    access_token: accessToken
+  });
+  
+  return google.calendar({ version: 'v3', auth: oauth2Client });
+};
+
+// Create or get Skedlyze calendar
+const getOrCreateSkedlyzeCalendar = async (accessToken) => {
+  const calendar = getCalendarAPI(accessToken);
+  
+  try {
+    // First, try to find existing Skedlyze calendar
+    const calendarList = await calendar.calendarList.list();
+    const skedlyzeCalendar = calendarList.data.items.find(
+      cal => cal.summary === 'Skedlyze Calendar'
+    );
+    
+    if (skedlyzeCalendar) {
+      return skedlyzeCalendar.id;
+    }
+    
+    // Create new Skedlyze calendar if it doesn't exist
+    const newCalendar = await calendar.calendars.insert({
+      resource: {
+        summary: 'Skedlyze Calendar',
+        description: 'Tasks and events from Skedlyze app',
+        timeZone: 'UTC'
+      }
+    });
+    
+    return newCalendar.data.id;
+  } catch (error) {
+    console.error('Error creating Skedlyze calendar:', error);
+    throw error;
+  }
+};
 
 // Get all tasks for the authenticated user
 const getUserTasks = async (req, res) => {
@@ -66,10 +112,62 @@ const createTask = async (req, res) => {
       recurrence_rule
     }).returning('*');
 
-    // Update user's total tasks created
-    await db('users')
-      .where({ id: req.user.id })
-      .increment('total_tasks_created', 1);
+    // Update user's gamification data (temporarily disabled for debugging)
+    try {
+      await GamificationService.updateTaskStats(req.user.id, false, true);
+      await GamificationService.updateCategoryStats(req.user.id, category || 'other', false);
+    } catch (gamificationError) {
+      console.error('Gamification service error (non-blocking):', gamificationError);
+      // Continue with task creation even if gamification fails
+    }
+
+    // Auto-sync to Google Calendar if task has a due date and user has access token
+    if (due_date) {
+      try {
+        const user = await db('users')
+          .where({ id: req.user.id })
+          .select('access_token')
+          .first();
+
+        if (user && user.access_token) {
+          const calendar = getCalendarAPI(user.access_token);
+          const skedlyzeCalendarId = await getOrCreateSkedlyzeCalendar(user.access_token);
+          
+          const event = {
+            summary: task.title,
+            description: task.description || '',
+            start: {
+              dateTime: task.due_date,
+              timeZone: 'UTC'
+            },
+            end: {
+              dateTime: task.end_time || new Date(new Date(task.due_date).getTime() + 60 * 60 * 1000).toISOString(),
+              timeZone: 'UTC'
+            }
+          };
+
+          const response = await calendar.events.insert({
+            calendarId: skedlyzeCalendarId,
+            resource: event
+          });
+
+          // Update task with calendar event ID
+          await db('tasks')
+            .where({ id: task.id })
+            .update({
+              google_calendar_event_id: response.data.id,
+              synced_to_calendar: true
+            });
+
+          // Update the task object to include sync info
+          task.google_calendar_event_id = response.data.id;
+          task.synced_to_calendar = true;
+        }
+      } catch (calendarError) {
+        console.error('Error syncing task to calendar (non-blocking):', calendarError);
+        // Continue with task creation even if calendar sync fails
+      }
+    }
 
     res.status(201).json(task);
   } catch (error) {
@@ -89,6 +187,9 @@ const updateTask = async (req, res) => {
       return res.status(404).json({ error: 'Task not found' });
     }
 
+    // Check if task is being unchecked (completed -> not completed)
+    const isBeingUnchecked = task.is_completed && req.body.is_completed === false;
+    
     const [updatedTask] = await db('tasks')
       .where({ id: req.params.id })
       .update({
@@ -96,6 +197,49 @@ const updateTask = async (req, res) => {
         updated_at: new Date()
       })
       .returning('*');
+
+    // If task is being unchecked, deduct XP
+    if (isBeingUnchecked && task.completed_at) {
+      try {
+        // Calculate XP to deduct based on original priority
+        let experienceToDeduct;
+        switch (task.priority) {
+          case 'low':
+            experienceToDeduct = 5;
+            break;
+          case 'high':
+            experienceToDeduct = 20;
+            break;
+          default: // medium
+            experienceToDeduct = 10;
+            break;
+        }
+
+        // Deduct experience and update stats
+        const experienceResult = await GamificationService.removeExperience(req.user.id, experienceToDeduct, 'task_uncompletion');
+        await GamificationService.updateTaskStats(req.user.id, false, false); // Decrease completed count
+        await GamificationService.updateCategoryStats(req.user.id, task.category, false); // Decrease category count
+
+        // Return updated task with XP deduction info
+        res.json({
+          task: updatedTask,
+          experienceLost: experienceResult.experienceLost,
+          levelDown: experienceResult.levelDown,
+          newLevel: experienceResult.levelDown ? experienceResult.level : null
+        });
+        return;
+      } catch (gamificationError) {
+        console.error('Gamification service error (non-blocking):', gamificationError);
+        // Still return the updated task even if gamification fails
+        res.json({
+          task: updatedTask,
+          experienceLost: 0,
+          levelDown: false,
+          newLevel: null
+        });
+        return;
+      }
+    }
 
     res.json(updatedTask);
   } catch (error) {
@@ -117,10 +261,36 @@ const deleteTask = async (req, res) => {
 
     // Remove from Google Calendar if synced
     if (task.google_calendar_event_id) {
-      // TODO: Implement Google Calendar deletion
+      try {
+        const user = await db('users')
+          .where({ id: req.user.id })
+          .select('access_token')
+          .first();
+
+        if (user && user.access_token) {
+          const calendar = getCalendarAPI(user.access_token);
+          const skedlyzeCalendarId = await getOrCreateSkedlyzeCalendar(user.access_token);
+          
+          await calendar.events.delete({
+            calendarId: skedlyzeCalendarId,
+            eventId: task.google_calendar_event_id
+          });
+        }
+      } catch (calendarError) {
+        console.error('Error removing task from calendar (non-blocking):', calendarError);
+        // Continue with task deletion even if calendar removal fails
+      }
     }
 
     await db('tasks').where({ id: req.params.id }).del();
+
+    // Update user's gamification data after task deletion
+    try {
+      await GamificationService.updateTaskStats(req.user.id, false, false);
+      await GamificationService.updateCategoryStats(req.user.id, task.category, false);
+    } catch (gamificationError) {
+      console.error('Gamification service error after task deletion (non-blocking):', gamificationError);
+    }
 
     res.json({ message: 'Task deleted successfully' });
   } catch (error) {
@@ -148,6 +318,20 @@ const completeTask = async (req, res) => {
       ? Math.round((new Date(task.end_time) - new Date(task.start_time)) / (1000 * 60))
       : null;
 
+    // Calculate XP based on priority
+    let experienceReward;
+    switch (task.priority) {
+      case 'low':
+        experienceReward = 5;
+        break;
+      case 'high':
+        experienceReward = 20;
+        break;
+      default: // medium
+        experienceReward = 10;
+        break;
+    }
+
     // Update task
     const [updatedTask] = await db('tasks')
       .where({ id: req.params.id })
@@ -159,31 +343,32 @@ const completeTask = async (req, res) => {
       })
       .returning('*');
 
-    // Update user stats and award experience
-    const [user] = await db('users')
-      .where({ id: req.user.id })
-      .increment({
-        total_tasks_completed: 1,
-        experience_points: task.experience_reward
-      })
-      .returning('*');
+    // Update user's gamification data
+    try {
+      const experienceResult = await GamificationService.addExperience(req.user.id, experienceReward, 'task_completion');
+      await GamificationService.updateTaskStats(req.user.id, true, false);
+      await GamificationService.updateStreak(req.user.id);
+      await GamificationService.updateCategoryStats(req.user.id, task.category, true);
 
-    // Check for level up
-    const newLevel = Math.floor(user.experience_points / 100) + 1;
-    if (newLevel > user.level) {
-      await db('users')
-        .where({ id: req.user.id })
-        .update({ level: newLevel });
+      // Check for achievements
+      // await achievementService.checkAllAchievements(req.user.id); // This line was removed from imports, so it's removed here.
+
+      res.json({
+        task: updatedTask,
+        experienceGained: experienceResult.experienceGained,
+        levelUp: experienceResult.levelUp,
+        newLevel: experienceResult.levelUp ? experienceResult.level : null
+      });
+    } catch (gamificationError) {
+      console.error('Gamification service error (non-blocking):', gamificationError);
+      // Still return the completed task even if gamification fails
+      res.json({
+        task: updatedTask,
+        experienceGained: experienceReward,
+        levelUp: false,
+        newLevel: null
+      });
     }
-
-    // Check for achievements
-    await achievementService.checkTaskCompletionAchievements(req.user.id);
-
-    res.json({
-      task: updatedTask,
-      experienceGained: task.experience_reward,
-      newLevel: newLevel > user.level ? newLevel : null
-    });
   } catch (error) {
     console.error('Error completing task:', error);
     res.status(500).json({ error: 'Failed to complete task' });

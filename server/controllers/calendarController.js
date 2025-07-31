@@ -16,6 +16,49 @@ const getCalendarAPI = (accessToken) => {
   return google.calendar({ version: 'v3', auth: oauth2Client });
 };
 
+// Get user's available calendars
+const getAvailableCalendars = async (req, res) => {
+  try {
+    const user = await db('users')
+      .where({ id: req.user.id })
+      .select('access_token')
+      .first();
+
+    if (!user) {
+      return res.status(404).json({ error: 'User not found in database' });
+    }
+
+    if (!user.access_token) {
+      return res.status(401).json({ 
+        error: 'No Google access token available',
+        message: 'Please authenticate with Google to access calendar features'
+      });
+    }
+
+    const calendar = getCalendarAPI(user.access_token);
+    
+    const response = await calendar.calendarList.list({
+      minAccessRole: 'reader'
+    });
+
+    const calendars = response.data.items.map(cal => ({
+      id: cal.id,
+      summary: cal.summary,
+      description: cal.description,
+      primary: cal.primary || false,
+      accessRole: cal.accessRole,
+      backgroundColor: cal.backgroundColor,
+      foregroundColor: cal.foregroundColor,
+      selected: cal.primary || false // Default to primary calendar being selected
+    }));
+
+    res.json(calendars);
+  } catch (error) {
+    console.error('Error fetching available calendars:', error);
+    res.status(500).json({ error: 'Failed to fetch available calendars' });
+  }
+};
+
 // Get user's Google Calendar events
 const getCalendarEvents = async (req, res) => {
   try {
@@ -29,18 +72,47 @@ const getCalendarEvents = async (req, res) => {
     }
 
     const calendar = getCalendarAPI(user.access_token);
-    const { timeMin, timeMax, maxResults = 10 } = req.query;
+    const { timeMin, timeMax, maxResults = 10, calendarIds } = req.query;
 
-    const response = await calendar.events.list({
-      calendarId: 'primary',
-      timeMin: timeMin || new Date().toISOString(),
-      timeMax: timeMax || new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
-      maxResults: parseInt(maxResults),
-      singleEvents: true,
-      orderBy: 'startTime'
+    // Parse calendar IDs - if not provided, use primary calendar
+    const calendarIdList = calendarIds ? calendarIds.split(',') : ['primary'];
+
+    let allEvents = [];
+
+    // Fetch events from all specified calendars
+    for (const calendarId of calendarIdList) {
+      try {
+        const response = await calendar.events.list({
+          calendarId: calendarId.trim(),
+          timeMin: timeMin || new Date().toISOString(),
+          timeMax: timeMax || new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+          maxResults: parseInt(maxResults),
+          singleEvents: true,
+          orderBy: 'startTime'
+        });
+
+        // Add calendar info to each event
+        const eventsWithCalendar = (response.data.items || []).map(event => ({
+          ...event,
+          calendarId: calendarId,
+          calendarSummary: calendarId === 'primary' ? 'Primary Calendar' : calendarId
+        }));
+
+        allEvents = [...allEvents, ...eventsWithCalendar];
+      } catch (error) {
+        console.error(`Error fetching events from calendar ${calendarId}:`, error);
+        // Continue with other calendars even if one fails
+      }
+    }
+
+    // Sort all events by start time
+    allEvents.sort((a, b) => {
+      const aStart = new Date(a.start.dateTime || a.start.date);
+      const bStart = new Date(b.start.dateTime || b.start.date);
+      return aStart - bStart;
     });
 
-    res.json(response.data.items || []);
+    res.json(allEvents);
   } catch (error) {
     console.error('Error fetching calendar events:', error);
     res.status(500).json({ error: 'Failed to fetch calendar events' });
@@ -59,7 +131,7 @@ const createCalendarEvent = async (req, res) => {
       return res.status(400).json({ error: 'No access token available' });
     }
 
-    const { summary, description, start, end, location } = req.body;
+    const { summary, description, start, end, location, calendarId } = req.body;
 
     const calendar = getCalendarAPI(user.access_token);
     const event = {
@@ -77,7 +149,7 @@ const createCalendarEvent = async (req, res) => {
     };
 
     const response = await calendar.events.insert({
-      calendarId: 'primary',
+      calendarId: calendarId || 'primary',
       resource: event
     });
 
@@ -101,7 +173,7 @@ const updateCalendarEvent = async (req, res) => {
     }
 
     const { eventId } = req.params;
-    const { summary, description, start, end, location } = req.body;
+    const { summary, description, start, end, location, calendarId } = req.body;
 
     const calendar = getCalendarAPI(user.access_token);
     const event = {
@@ -119,7 +191,7 @@ const updateCalendarEvent = async (req, res) => {
     };
 
     const response = await calendar.events.update({
-      calendarId: 'primary',
+      calendarId: calendarId || 'primary',
       eventId,
       resource: event
     });
@@ -144,10 +216,11 @@ const deleteCalendarEvent = async (req, res) => {
     }
 
     const { eventId } = req.params;
+    const { calendarId } = req.query; // Get calendarId from query parameters
     const calendar = getCalendarAPI(user.access_token);
 
     await calendar.events.delete({
-      calendarId: 'primary',
+      calendarId: calendarId || 'primary',
       eventId
     });
 
@@ -155,6 +228,37 @@ const deleteCalendarEvent = async (req, res) => {
   } catch (error) {
     console.error('Error deleting calendar event:', error);
     res.status(500).json({ error: 'Failed to delete calendar event' });
+  }
+};
+
+// Create or get Skedlyze calendar
+const getOrCreateSkedlyzeCalendar = async (accessToken) => {
+  const calendar = getCalendarAPI(accessToken);
+  
+  try {
+    // First, try to find existing Skedlyze calendar
+    const calendarList = await calendar.calendarList.list();
+    const skedlyzeCalendar = calendarList.data.items.find(
+      cal => cal.summary === 'Skedlyze Calendar'
+    );
+    
+    if (skedlyzeCalendar) {
+      return skedlyzeCalendar.id;
+    }
+    
+    // Create new Skedlyze calendar if it doesn't exist
+    const newCalendar = await calendar.calendars.insert({
+      resource: {
+        summary: 'Skedlyze Calendar',
+        description: 'Tasks and events from Skedlyze app',
+        timeZone: 'UTC'
+      }
+    });
+    
+    return newCalendar.data.id;
+  } catch (error) {
+    console.error('Error creating Skedlyze calendar:', error);
+    throw error;
   }
 };
 
@@ -179,6 +283,16 @@ const syncAllTasksToCalendar = async (req, res) => {
       .select('*');
 
     const calendar = getCalendarAPI(user.access_token);
+    
+    // Get or create Skedlyze calendar
+    let skedlyzeCalendarId;
+    try {
+      skedlyzeCalendarId = await getOrCreateSkedlyzeCalendar(user.access_token);
+    } catch (error) {
+      console.error('Error getting Skedlyze calendar:', error);
+      return res.status(500).json({ error: 'Failed to create Skedlyze calendar' });
+    }
+    
     const syncedTasks = [];
 
     for (const task of tasks) {
@@ -197,7 +311,7 @@ const syncAllTasksToCalendar = async (req, res) => {
         };
 
         const response = await calendar.events.insert({
-          calendarId: 'primary',
+          calendarId: skedlyzeCalendarId, // Use Skedlyze calendar instead of primary
           resource: event
         });
 
@@ -219,7 +333,7 @@ const syncAllTasksToCalendar = async (req, res) => {
     }
 
     res.json({
-      message: `Synced ${syncedTasks.length} tasks to calendar`,
+      message: `Synced ${syncedTasks.length} tasks to Skedlyze Calendar`,
       syncedTasks
     });
   } catch (error) {
@@ -308,5 +422,6 @@ module.exports = {
   deleteCalendarEvent,
   syncAllTasksToCalendar,
   getSyncStatus,
-  refreshAccessToken
+  refreshAccessToken,
+  getAvailableCalendars
 }; 

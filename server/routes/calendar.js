@@ -2,6 +2,9 @@ const express = require('express');
 const router = express.Router();
 const calendarController = require('../controllers/calendarController');
 
+// Get user's available calendars
+router.get('/calendars', calendarController.getAvailableCalendars);
+
 // Get user's Google Calendar events
 router.get('/events', calendarController.getCalendarEvents);
 
