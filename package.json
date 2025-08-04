@@ -8,7 +8,9 @@
     "dev": "concurrently \"npm run dev:server\" \"npm run dev:web\"",
     "dev:server": "cd server && npm run dev",
     "dev:web": "cd web-client && npm run dev",
-    "build": "cd server && npm run build",
+    "build": "npm run build:web",
+    "build:web": "cd web-client && npm run build",
+    "build:server": "cd server && npm run build",
     "start": "cd server && npm start",
     "migrate": "cd server && npm run migrate",
     "seed": "cd server && npm run seed",
@@ -29,9 +31,9 @@
   "license": "ISC",
   "devDependencies": {
     "concurrently": "^8.2.2"
-  },
-  "workspaces": [
-    "server",
-    "web-client"
-  ]
+  }
+  // "workspaces": [
+  //   "server",
+  //   "web-client"
+  // ]
 } 

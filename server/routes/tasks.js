@@ -5,17 +5,17 @@ const taskController = require('../controllers/taskController');
 // Get all tasks for the authenticated user
 router.get('/', taskController.getUserTasks);
 
+// Get tasks due today
+// router.get('/due/today', taskController.getTasksDueToday);
+
+// Get tasks due this week
+// router.get('/due/week', taskController.getTasksDueThisWeek);
+
 // Get tasks by category
 router.get('/category/:category', taskController.getTasksByCategory);
 
 // Get tasks by status
 router.get('/status/:status', taskController.getTasksByStatus);
-
-// Get tasks due today
-router.get('/due/today', taskController.getTasksDueToday);
-
-// Get tasks due this week
-router.get('/due/week', taskController.getTasksDueThisWeek);
 
 // Get a specific task
 router.get('/:id', taskController.getTask);

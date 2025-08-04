@@ -126,7 +126,7 @@ function DashboardPage() {
   return (
     <Box>
       <Typography variant="h4" gutterBottom sx={{ fontWeight: 'bold', mb: 3 }}>
-        Welcome back, {user?.name}! 👋
+        Welcome back, {user?.name}!
       </Typography>
 
       {/* Stats Cards */}
