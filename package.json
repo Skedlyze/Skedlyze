@@ -32,8 +32,4 @@
   "devDependencies": {
     "concurrently": "^8.2.2"
   }
-  // "workspaces": [
-  //   "server",
-  //   "web-client"
-  // ]
 } 
