@@ -21,11 +21,25 @@ passport.deserializeUser(async (id, done) => {
 
 // Google OAuth Strategy - only initialize if credentials are configured
 if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_ID !== 'your-google-client-id') {
+  // Determine callback URL based on environment
+  const isProduction = process.env.NODE_ENV === 'production';
+  const callbackURL = isProduction 
+    ? 'https://skedlyze.onrender.com/api/auth/google/callback'
+    : 'http://localhost:5000/api/auth/google/callback';
+  
+  console.log('🔧 Initializing Google OAuth Strategy with:');
+  console.log('   Environment:', process.env.NODE_ENV || 'development');
+  console.log('   Client ID:', process.env.GOOGLE_CLIENT_ID);
+  console.log('   Callback URL:', callbackURL);
+  console.log('   Client Secret length:', process.env.GOOGLE_CLIENT_SECRET ? process.env.GOOGLE_CLIENT_SECRET.length : 0);
+  
   passport.use(new GoogleStrategy({
     clientID: process.env.GOOGLE_CLIENT_ID,
     clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-    callbackURL: process.env.GOOGLE_CALLBACK_URL || 'http://localhost:5000/api/auth/google/callback',
-    scope: ['profile', 'email', 'https://www.googleapis.com/auth/calendar']
+    callbackURL: callbackURL,
+    scope: ['profile', 'email', 'https://www.googleapis.com/auth/calendar'],
+    accessType: 'offline',
+    prompt: 'consent'
   }, async (accessToken, refreshToken, profile, done) => {
     try {
       // Check if user already exists

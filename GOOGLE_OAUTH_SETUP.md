@@ -28,7 +28,7 @@
 3. Choose "Web application"
 4. Add authorized redirect URIs:
    - `http://localhost:5000/api/auth/google/callback` (for development)
-   - `https://yourdomain.com/api/auth/google/callback` (for production)
+   - `https://skedlyze.onrender.com/api/auth/google/callback` (for production)
 
 ### Step 4: Update Environment Variables
 
@@ -38,7 +38,9 @@ Update your `server/.env` file with the credentials:
 # Google OAuth Configuration
 GOOGLE_CLIENT_ID=your-actual-google-client-id
 GOOGLE_CLIENT_SECRET=your-actual-google-client-secret
-GOOGLE_CALLBACK_URL=http://localhost:5000/api/auth/google/callback
+# Note: Callback URL is automatically determined based on NODE_ENV
+# - Development: http://localhost:5000/api/auth/google/callback
+# - Production: https://skedlyze.onrender.com/api/auth/google/callback
 ```
 
 ### Step 5: Restart the Server
@@ -50,16 +52,26 @@ cd server
 npm run dev
 ```
 
-## 🚀 Quick Setup (Development)
+## 🚀 Environment-Specific Setup
 
-For quick development, you can use these placeholder credentials that will show a demo login:
-
-```env
-GOOGLE_CLIENT_ID=your-google-client-id
-GOOGLE_CLIENT_SECRET=your-google-client-secret
+### Development (Localhost)
+```bash
+NODE_ENV=development
+# The app will automatically use: http://localhost:5000/api/auth/google/callback
 ```
 
-This will fall back to the demo login system.
+### Production (Render)
+```bash
+NODE_ENV=production
+# The app will automatically use: https://skedlyze.onrender.com/api/auth/google/callback
+```
+
+### Testing Configuration
+Run the test script to verify your setup:
+```bash
+cd server
+node test-oauth.js
+```
 
 ## ✅ Verification
 
