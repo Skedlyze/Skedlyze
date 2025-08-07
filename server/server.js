@@ -107,6 +107,7 @@ app.listen(PORT, async () => {
       console.log('✅ Database migrations completed');
     } catch (error) {
       console.error('❌ Database migration failed:', error);
+      console.log('⚠️ Continuing without migrations - some features may not work');
     }
   }
 });
