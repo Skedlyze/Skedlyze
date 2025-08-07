@@ -14,12 +14,11 @@ const taskRoutes = require('./routes/tasks');
 const userRoutes = require('./routes/users');
 const calendarRoutes = require('./routes/calendar');
 
-
 // Import middleware
 const isAuthenticated = require('./middleware/isAuthenticated');
 
-// Import database connection
-const db = require('./db/knex');
+// Import database connection - temporarily commented out
+// const db = require('./db/knex');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -57,7 +56,6 @@ app.use('/api/auth', authRoutes);
 app.use('/api/tasks', isAuthenticated, taskRoutes);
 app.use('/api/users', isAuthenticated, userRoutes);
 app.use('/api/calendar', isAuthenticated, calendarRoutes);
-
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
