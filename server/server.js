@@ -23,6 +23,23 @@ const db = require('./db/knex');
 const app = express();
 const PORT = process.env.PORT || 5000;
 
+// Configure session store for production
+let sessionStore;
+if (process.env.NODE_ENV === 'production') {
+  const pgSession = require('connect-pg-simple')(session);
+  sessionStore = new pgSession({
+    conObject: {
+      host: process.env.DB_HOST,
+      port: process.env.DB_PORT || 5432,
+      database: process.env.DB_NAME,
+      user: process.env.DB_USER,
+      password: process.env.DB_PASSWORD,
+      ssl: { rejectUnauthorized: false }
+    },
+    tableName: 'sessions'
+  });
+}
+
 // Middleware
 app.use(cors({
   origin: process.env.CLIENT_URL || 'http://localhost:3000',
@@ -34,6 +51,7 @@ app.use(express.urlencoded({ extended: true }));
 
 // Session configuration
 app.use(session({
+  store: sessionStore,
   secret: process.env.SESSION_SECRET || 'your-secret-key',
   resave: false,
   saveUninitialized: false,
