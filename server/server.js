@@ -96,8 +96,11 @@ if (process.env.NODE_ENV === 'production') {
 
   // Specific route for assets to ensure they're served correctly
   app.get('/assets/*', (req, res) => {
-    const filePath = path.join(__dirname, '../web-client/dist', req.url);
+    // Remove the /assets/ prefix from the URL to get the relative path
+    const relativePath = req.url.replace('/assets/', '');
+    const filePath = path.join(__dirname, '../web-client/dist/assets', relativePath);
     console.log(`🎯 Assets route: ${req.url} -> ${filePath}`);
+    console.log(`📁 Relative path: ${relativePath}`);
     
     if (req.url.endsWith('.js')) {
       res.setHeader('Content-Type', 'application/javascript; charset=utf-8');
