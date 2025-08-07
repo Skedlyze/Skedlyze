@@ -1,3 +1,7 @@
+/**
+ * @param { import("knex").Knex } knex
+ * @returns { Promise<void> }
+ */
 exports.up = function(knex) {
   return knex('tasks').del()
     .then(() => knex('users').del())
@@ -7,7 +11,11 @@ exports.up = function(knex) {
     });
 };
 
+/**
+ * @param { import("knex").Knex } knex
+ * @returns { Promise<void> }
+ */
 exports.down = function(knex) {
   // This migration only deletes data, so down migration does nothing
   return Promise.resolve();
-}; 
+};

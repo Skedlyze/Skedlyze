@@ -1,3 +1,7 @@
+/**
+ * @param { import("knex").Knex } knex
+ * @returns { Promise<void> }
+ */
 exports.up = function(knex) {
   return knex.schema.alterTable('users', function(table) {
     // Add goal selection field
@@ -25,6 +29,10 @@ exports.up = function(knex) {
   });
 };
 
+/**
+ * @param { import("knex").Knex } knex
+ * @returns { Promise<void> }
+ */
 exports.down = function(knex) {
   return knex.schema.dropTableIfExists('default_tasks')
     .then(() => {
@@ -33,4 +41,4 @@ exports.down = function(knex) {
         table.dropColumn('onboarding_completed');
       });
     });
-}; 
+};
