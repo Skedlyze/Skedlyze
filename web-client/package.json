@@ -27,10 +27,9 @@
     "dayjs": "^1.11.10",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
-    "react-router-dom": "^6.22.3"
-  },
-  "devDependencies": {
+    "react-router-dom": "^6.22.3",
     "@vitejs/plugin-react": "^4.3.4",
     "vite": "^5.2.8"
-  }
+  },
+  "devDependencies": {}
 }
