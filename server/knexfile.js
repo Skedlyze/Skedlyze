@@ -11,7 +11,8 @@ module.exports = {
       port: process.env.DB_PORT || 5432,
       database: process.env.DB_NAME || 'skedlyze_dev',
       user: process.env.DB_USER || 'postgres',
-      password: process.env.DB_PASSWORD || 'password'
+      password: process.env.DB_PASSWORD || 'password',
+      ssl: { rejectUnauthorized: false }
     },
     pool: {
       min: 2,
@@ -33,7 +34,8 @@ module.exports = {
       port: process.env.DB_PORT || 5432,
       database: process.env.DB_TEST_NAME || 'skedlyze_test',
       user: process.env.DB_USER || 'postgres',
-      password: process.env.DB_PASSWORD || 'password'
+      password: process.env.DB_PASSWORD || 'password',
+      ssl: { rejectUnauthorized: false }
     },
     pool: {
       min: 2,

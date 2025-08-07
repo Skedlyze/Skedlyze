@@ -28,7 +28,8 @@ router.get('/google/callback',
   }),
   (req, res) => {
     // Successful authentication, redirect to dashboard
-    res.redirect(process.env.CLIENT_URL || 'http://localhost:3000/dashboard');
+    const config = require('../config/environment');
+    res.redirect(`${config.getClientUrl()}/dashboard`);
   }
 );
 

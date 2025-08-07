@@ -1,5 +1,6 @@
 const passport = require('passport');
 const GoogleStrategy = require('passport-google-oauth20').Strategy;
+const config = require('./environment');
 // const db = require('../db/knex');
 const GamificationService = require('../services/gamificationService');
 const UserManagementService = require('../services/userManagementService');
@@ -12,21 +13,38 @@ passport.serializeUser((user, done) => {
 // Deserialize user from the session
 passport.deserializeUser(async (id, done) => {
   try {
-    // Temporarily return a mock user to avoid database connection
-    done(null, { id, name: 'Test User', email: 'test@example.com' });
-    // const user = await db('users').where({ id }).first();
-    // done(null, user);
+    // For now, return a mock user that matches what we create in the strategy
+    // In production, this would fetch from the database
+    const mockUser = {
+      id: id,
+      google_id: id,
+      email: 'user@example.com',
+      name: 'Authenticated User',
+      picture: null,
+      level: 0,
+      experience_points: 0,
+      streak_days: 0,
+      total_tasks_completed: 0,
+      total_tasks_created: 0,
+      preferences: JSON.stringify({}),
+      calendar_sync_enabled: false
+    };
+    done(null, mockUser);
   } catch (error) {
     done(error, null);
   }
 });
 
 // Google OAuth Strategy - only initialize if credentials are configured
-if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_ID !== 'your-google-client-id') {
+if (config.getGoogleClientId() && config.getGoogleClientId() !== 'your-google-client-id') {
+  console.log('🔧 Google OAuth Configuration:');
+  console.log('  - Client ID:', config.getGoogleClientId());
+  console.log('  - Callback URL:', config.getGoogleCallbackUrl());
+  
   passport.use(new GoogleStrategy({
-    clientID: process.env.GOOGLE_CLIENT_ID,
-    clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-    callbackURL: process.env.GOOGLE_CALLBACK_URL || 'http://localhost:5000/api/auth/google/callback',
+    clientID: config.getGoogleClientId(),
+    clientSecret: config.getGoogleClientSecret(),
+    callbackURL: config.getGoogleCallbackUrl(),
     scope: ['profile', 'email', 'https://www.googleapis.com/auth/calendar']
   }, async (accessToken, refreshToken, profile, done) => {
     try {

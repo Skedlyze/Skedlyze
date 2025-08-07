@@ -4,6 +4,7 @@ const session = require('express-session');
 const passport = require('passport');
 const dotenv = require('dotenv');
 const path = require('path');
+const config = require('./config/environment');
 
 // Load environment variables
 dotenv.config();
@@ -21,11 +22,11 @@ const isAuthenticated = require('./middleware/isAuthenticated');
 // const db = require('./db/knex');
 
 const app = express();
-const PORT = process.env.PORT || 5000;
+const PORT = config.getPort();
 
 // Middleware
 app.use(cors({
-  origin: process.env.CLIENT_URL || 'http://localhost:3000',
+  origin: config.isProduction ? config.getBaseUrl() : config.getClientUrl(),
   credentials: true
 }));
 
@@ -34,15 +35,28 @@ app.use(express.urlencoded({ extended: true }));
 
 // Session configuration
 app.use(session({
-  secret: process.env.SESSION_SECRET || 'your-secret-key',
+  secret: config.getSessionSecret() || 'your-secret-key',
   resave: false,
   saveUninitialized: false,
   cookie: {
-    secure: false, // Set to false for development (HTTP)
+    secure: config.isProduction, // Use HTTPS in production
     httpOnly: true,
+    sameSite: config.isProduction ? 'none' : 'lax', // 'none' for cross-origin in production
+    domain: config.isProduction ? undefined : 'localhost', // Let browser set domain in production
     maxAge: 24 * 60 * 60 * 1000 // 24 hours
   }
 }));
+
+// Debug session middleware (development only)
+if (!config.isProduction) {
+  app.use((req, res, next) => {
+    console.log('📋 Session Debug:');
+    console.log('  - Session ID:', req.sessionID);
+    console.log('  - Session:', req.session);
+    console.log('  - User:', req.user);
+    next();
+  });
+}
 
 // Passport middleware
 app.use(passport.initialize());
@@ -62,13 +76,15 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'OK', message: 'Skedlyze API is running' });
 });
 
-// Serve static files from React build
-app.use(express.static(path.join(__dirname, '../web-client/dist')));
+// Serve static files from React build (only in production)
+if (process.env.NODE_ENV === 'production') {
+  app.use(express.static(path.join(__dirname, '../web-client/dist')));
 
-// Serve React app for all non-API routes
-app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, '../web-client/dist/index.html'));
-});
+  // Serve React app for all non-API routes
+  app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, '../web-client/dist/index.html'));
+  });
+}
 
 // Error handling middleware
 app.use((err, req, res, next) => {
