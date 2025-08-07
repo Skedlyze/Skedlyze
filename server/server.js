@@ -18,8 +18,8 @@ const calendarRoutes = require('./routes/calendar');
 // Import middleware
 const isAuthenticated = require('./middleware/isAuthenticated');
 
-// Import database connection - temporarily commented out
-// const db = require('./db/knex');
+// Import database connection
+const db = require('./db/knex');
 
 const app = express();
 const PORT = config.getPort();
@@ -96,9 +96,19 @@ app.use((err, req, res, next) => {
 });
 
 // Start server
-app.listen(PORT, () => {
+app.listen(PORT, async () => {
   console.log(`🚀 Skedlyze server running on port ${PORT}`);
   console.log(`📊 Environment: ${process.env.NODE_ENV || 'development'}`);
+  
+  // Run database migrations in production
+  if (process.env.NODE_ENV === 'production') {
+    try {
+      await db.migrate.latest();
+      console.log('✅ Database migrations completed');
+    } catch (error) {
+      console.error('❌ Database migration failed:', error);
+    }
+  }
 });
 
 module.exports = app;
