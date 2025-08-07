@@ -104,6 +104,9 @@ if (process.env.NODE_ENV === 'production') {
     
     if (req.url.endsWith('.js')) {
       res.setHeader('Content-Type', 'application/javascript; charset=utf-8');
+      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+      res.setHeader('Pragma', 'no-cache');
+      res.setHeader('Expires', '0');
       console.log(`🔧 Set MIME type for JS file: ${req.url}`);
     }
     
@@ -123,6 +126,8 @@ if (process.env.NODE_ENV === 'production') {
     res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
     res.setHeader('Pragma', 'no-cache');
     res.setHeader('Expires', '0');
+    res.setHeader('Last-Modified', new Date().toUTCString());
+    res.setHeader('ETag', `"${Date.now()}"`);
     res.sendFile(path.join(__dirname, '../web-client/dist/index.html'));
   });
 }
