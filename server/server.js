@@ -84,7 +84,28 @@ if (process.env.NODE_ENV === 'production') {
     next();
   });
 
-  // Serve static files with proper MIME types
+  // Serve assets directory specifically
+  app.use('/assets', (req, res, next) => {
+    console.log(`🎯 Assets request: ${req.url}`);
+    const filePath = path.join(__dirname, '../web-client/dist/assets', req.url);
+    console.log(`📁 Looking for file: ${filePath}`);
+    
+    if (req.url.endsWith('.js')) {
+      res.setHeader('Content-Type', 'application/javascript; charset=utf-8');
+      console.log(`🔧 Set MIME type for JS file: ${req.url}`);
+    }
+    
+    res.sendFile(filePath, (err) => {
+      if (err) {
+        console.log(`❌ File not found: ${filePath}`);
+        next();
+      } else {
+        console.log(`✅ Served file: ${filePath}`);
+      }
+    });
+  });
+
+  // Serve other static files
   app.use(express.static(path.join(__dirname, '../web-client/dist'), {
     setHeaders: (res, path) => {
       if (path.endsWith('.js')) {
