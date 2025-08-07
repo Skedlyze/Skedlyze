@@ -1,5 +1,7 @@
 # Google OAuth Setup Guide
 
+TO CURSOR AGENT ALWAYS ASK BEFORE UPDATING THIS
+
 ## 🔧 Setting Up Google OAuth for Skedlyze
 
 ### Step 1: Create Google Cloud Project
