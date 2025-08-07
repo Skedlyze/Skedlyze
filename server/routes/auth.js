@@ -2,6 +2,23 @@ const express = require('express');
 const passport = require('passport');
 const router = express.Router();
 
+// Test endpoint to check session
+router.get('/test-session', (req, res) => {
+  console.log('🧪 Test session endpoint:', {
+    sessionID: req.sessionID,
+    session: req.session,
+    authenticated: req.isAuthenticated(),
+    user: req.user
+  });
+  
+  res.json({
+    sessionID: req.sessionID,
+    hasSession: !!req.session,
+    authenticated: req.isAuthenticated(),
+    user: req.user
+  });
+});
+
 // Google OAuth login
 router.get('/google', (req, res, next) => {
   // Check if we need to force calendar scope
