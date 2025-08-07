@@ -92,6 +92,9 @@ if (process.env.NODE_ENV === 'production') {
     
     if (req.url.endsWith('.js')) {
       res.setHeader('Content-Type', 'application/javascript; charset=utf-8');
+      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+      res.setHeader('Pragma', 'no-cache');
+      res.setHeader('Expires', '0');
       console.log(`🔧 Set MIME type for JS file: ${req.url}`);
     }
     
@@ -118,6 +121,9 @@ if (process.env.NODE_ENV === 'production') {
   // Serve React app for all non-API routes
   app.get('*', (req, res) => {
     console.log(`📄 Serving index.html for: ${req.url}`);
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
     res.sendFile(path.join(__dirname, '../web-client/dist/index.html'));
   });
 }
