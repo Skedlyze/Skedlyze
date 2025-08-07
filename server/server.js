@@ -78,26 +78,25 @@ app.get('/api/health', (req, res) => {
 
 // Serve static files from React build (only in production)
 if (process.env.NODE_ENV === 'production') {
-  // Serve static assets with correct MIME types
-  app.use('/assets', express.static(path.join(__dirname, '../web-client/dist/assets'), {
-    setHeaders: (res, path) => {
-      if (path.endsWith('.js')) {
-        res.setHeader('Content-Type', 'application/javascript; charset=utf-8');
-      }
-    }
-  }));
-  
-  // Serve other static files
+  // Debug middleware for production
+  app.use((req, res, next) => {
+    console.log(`📄 Request: ${req.method} ${req.url}`);
+    next();
+  });
+
+  // Serve static files with proper MIME types
   app.use(express.static(path.join(__dirname, '../web-client/dist'), {
     setHeaders: (res, path) => {
       if (path.endsWith('.js')) {
         res.setHeader('Content-Type', 'application/javascript; charset=utf-8');
+        console.log(`🔧 Set MIME type for: ${path}`);
       }
     }
   }));
 
   // Serve React app for all non-API routes
   app.get('*', (req, res) => {
+    console.log(`📄 Serving index.html for: ${req.url}`);
     res.sendFile(path.join(__dirname, '../web-client/dist/index.html'));
   });
 }
